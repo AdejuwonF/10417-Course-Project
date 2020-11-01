@@ -48,53 +48,58 @@ class DeconvNet(nn.Module):
 net = DeconvNet()
 coco_val = dset.CocoDetection(root=path + 'COCO_DATASET/val2017',
                               annFile=path + 'COCO_DATASET/annotations/instances_val2017.json',
-                              transforms=transformCoCoPairs(256))
-
-dataloader = DataLoader(coco_val, batch_size=1, shuffle=False, num_workers=0)
-ims, tgs = next(iter(dataloader))
-outs = net.forward(ims)
-
-img = ims[0,:,:,:]
-tg = tgs[0,:,:,:]
-out = outs[0,:,:,:]
-print(img.size(), tg.size(), out.size())
-
-plt.imshow(img.permute(1, 2, 0))
-plt.show()
-
-combinedMasks, indices = torch.max(tg, dim=0)
-plt.imshow(combinedMasks.unsqueeze(0).permute(1, 2, 0))
-plt.show()
-
-plt.imshow(out.permute(1, 2, 0).detach().numpy())
-plt.show()
+                              transforms=transformCoCoPairs(128))
 
 optimizer = optim.Adam(net.parameters(), lr=0.01)
-criterion = nn.BCELoss()
+loss_func = nn.BCELoss()
 
-for i in range(10000):
-    optimizer.zero_grad()
-    outs = net.forward(ims)
-    target = combinedMasks.unsqueeze(0)
-    loss = criterion(outs, target)
-    loss.backward()
-    optimizer.step()
-    print(i, loss)
+util.train(net, coco_val, 5, 50, coco_val, optimizer, loss_func)
+
+# dataloader = DataLoader(coco_val, batch_size=1, shuffle=False, num_workers=0)
+# ims, tgs = next(iter(dataloader))
+# outs = net.forward(ims)
+#
+# img = ims[0,:,:,:]
+# tg = tgs[0,:,:,:]
+# out = outs[0,:,:,:]
+# print(img.size(), tg.size(), out.size())
+#
+# plt.imshow(img.permute(1, 2, 0))
+# plt.show()
+#
+# combinedMasks, indices = torch.max(tg, dim=0)
+# plt.imshow(combinedMasks.unsqueeze(0).permute(1, 2, 0))
+# plt.show()
+#
+# plt.imshow(out.permute(1, 2, 0).detach().numpy())
+# plt.show()
+#
+# optimizer = optim.Adam(net.parameters(), lr=0.01)
+# criterion = nn.BCELoss()
+#
+# for i in range(10000):
+#     optimizer.zero_grad()
+#     outs = net.forward(ims)
+#     target = combinedMasks.unsqueeze(0)
+#     loss = criterion(outs, target)
+#     loss.backward()
+#     optimizer.step()
+#     print(i, loss)
 
 
 
 
 
-outs = net.forward(ims)
-out = outs[0, :, :, :]
-print(img.size(), tg.size(), out.size())
-
-plt.imshow(img.permute(1, 2, 0))
-plt.show()
-
-combinedMasks, indices = torch.max(tg, dim=0)
-plt.imshow(combinedMasks.unsqueeze(0).permute(1, 2, 0))
-plt.show()
-
-plt.imshow(out.permute(1, 2, 0).detach().numpy())
-plt.show()
+# outs = net.forward(ims)
+# out = outs[0, :, :, :]
+# print(img.size(), tg.size(), out.size())
+#
+# plt.imshow(img.permute(1, 2, 0))
+# plt.show()
+#
+# combinedMasks, indices = torch.max(tg, dim=0)
+# plt.imshow(combinedMasks.unsqueeze(0).permute(1, 2, 0))
+# plt.show()
+#
+# plt.imshow(out.permute(1, 2, 0).detach().numpy())
+# plt.show()

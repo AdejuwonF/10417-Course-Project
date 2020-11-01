@@ -10,8 +10,16 @@ import matplotlib as plt
 import PIL
 import skimage.io as io
 import pickle as pk
+from tqdm import tqdm
+import os.path as osp
+from torch.utils.data import DataLoader
 
 path = ""
+
+# get the device we are running on
+def get_device():
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # pickle and return a list of images and masks from the given dataset and annotations
 # file_prefix defines the prefix of the pickled files
 # size is the size to reshape all the images to
@@ -59,6 +67,82 @@ def preprocess(dataset, annotations, file_prefix, size=256, num=-1):
 
     return pk_images, pk_masks
 
+# training method with tensorboard and shit. not implemented yet due to scuffedness
+def fancy_train(model, dataset, epochs, batch_size, validation_dataset, optimizer, loss_func, logdir):
+    device = get_device()
+    writer = SummaryWriter(osp.join(logdir, "tb"))
+
+    for epoch in range(epochs):
+        model.train()
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        prog = tqdm(loader, f"Epoch {epoch+1}", unit="batch")
+        epoch_loss = 0.0
+        for i, batch in enumerate(prog):
+            # batch = batch.to(device)
+            ims, tgs = batch
+            optimizer.zero_grad()
+            loss = loss_func(model(batch), batch.y)
+            prog.set_postfix_str(s=f"Loss: {loss:.5f}", refresh=True)
+            loss.backward()
+            optimizer.step()
+            writer.add_scalar("Loss/Training", loss, epoch * len(prog) + i)
+            epoch_loss += loss.item() * batch.num_graphs
+        prog.set_postfix_str(s=f"Loss: {epoch_loss / len(dataset):.5f}", refresh=True)
+        # evaluate(model, dataset, epoch * len(prog), batch_size, "Training")
+        # evaluate(model, dataset, epoch * len(prog), batch_size, "Validation")
+
+# scuffed training method
+# returns list of train loss and list of validation loss
+def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, loss_func, layers=None):
+    len_dataset = len(dataset)
+    train_loss = []
+    val_loss = []
+    for epoch in range(epochs):
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+        num_batches = len(loader)
+        epoch_loss = 0.0
+        for i in range(int(len_dataset / batch_size)):
+            ims, tgs = next(iter(loader))
+
+            if layers is not None:
+                tgs = tgs[layers]
+            else:
+                tgs, indices = torch.max(tgs, dim=1)
+                tgs = tgs.unsqueeze(1)
+
+            optimizer.zero_grad()
+            outs = model.forward(ims)
+            loss = loss_func(outs, tgs)
+            epoch_loss += loss.item()
+            loss.backward()
+            optimizer.step()
+        print("epoch: " + str(epoch) + " train loss: " + str(epoch_loss / num_batches))
+        train_loss.append(epoch_loss / num_batches)
+
+        model.eval()
+        val_loader = DataLoader(validation_dataset, shuffle=False)
+        ims, tgs = next(iter(val_loader))
+        outs = model.forward(ims)
+        val_loss = loss_func(outs, tgs)
+        print("epoch: " + str(epoch) + " val loss: " + str(val_loss))
+        val_loss.append(val_loss)
+
+    return train_loss, val_loss
+
+
+# some function for evaluating. not yet implemented
+def evaluate(model, dataset, step, batch_size, data_name):
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    model.eval()
+    with torch.no_grad():
+        truth_list = []
+        pred_list = []
+        for batch in loader:
+            batch = batch.to(get_device())
+            pred_list.append(model(batch))
+            truth_list.append(batch.y)
+        truth = torch.cat(truth_list)
+        pred = torch.cat(pred_list)
 
 
 # Crops a tensor into a tensor of the desired size, centered about middle
@@ -96,6 +180,8 @@ class TransformAnn(object):
         if the ith category is not present, then it will be all 0s
         for the categories that don't correspond to any object, their respective layers will also be 0
         """
+        if len(annotations) == 0:
+            print("fuck")
         height, width = self.coco.annToMask(annotations[0]).shape
         masks = torch.zeros((91, height, width))
         for j in range(len(annotations)):
@@ -119,6 +205,6 @@ class transformCoCoPairs(object):
                                    self.crop])
 
     def __call__(self, image, annotations):
-        print("image{0}:, annoations_size:{1}".format(image, len(annotations)))
+        #print("image{0}:, annoations_size:{1}".format(image, len(annotations)))
         return self.input_transform(image), self.target_transform(annotations)
 
