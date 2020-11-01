@@ -88,3 +88,46 @@ for i in range(1):
     print(len(anns))
     for j in range(len(anns)):
         print(anns[j]['category_id'])
+
+
+
+
+# Crops a tensor into a tensor of the desired size, centered about middle
+# Probably can move to utils.py
+# Pytorch's builtin crop only works on PIL images, which I don't think works for our masks? Not entirely sure
+# Can use this as an alternative to downsampling, also can crop form different places for data augmentation
+class CenterCropTensor(object):
+    def __init__(self, size):
+        if isinstance(size, int):
+            self.out_size = (int(size), int(size))
+        else:
+            self.out_size = size
+
+    def __call__(self, tensor):
+        tensor_height, tensor_width = tensor.size()[2:]
+        crop_height, crop_width = self.out_size
+        crop_top = int(round((tensor_height - crop_height) / 2.))
+        crop_left = int(round((tensor_width - crop_width) / 2.))
+        return tensor[:, :, crop_top:tensor_height-crop_top, crop_left:tensor_width-crop_left]
+
+
+for i in range(1):
+    centerCrop = CenterCropTensor(256)
+    im, t = coco_val[i]
+    im = im.unsqueeze(0)
+    print(im.size())
+    cropped = centerCrop(im)
+    cropped = cropped.squeeze(0)
+    plt.imshow(cropped.permute(1, 2, 0))
+    plt.show()
+
+    anns = t
+    layer = 4
+    mask = coco.annToMask(anns[layer])
+    mask = torch.from_numpy(mask).unsqueeze(0)
+    mask = mask.unsqueeze(0)
+    mask = centerCrop(mask)
+    mask = mask.squeeze(0)
+    plt.imshow(mask.permute(1, 2, 0))
+    plt.show()
+    print(mask.shape)
