@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import PIL
 import skimage.io as io
 
+from util import CenterCropTensor, TransformAnn, transformCoCoPairs
+
 #path = "./"
 path = ""
 
@@ -92,28 +94,6 @@ for i in range(1):
 
 
 
-
-# Crops a tensor into a tensor of the desired size, centered about middle
-# Probably can move to utils.py
-# Pytorch's builtin crop only works on PIL images, which I don't think works for our masks? Not entirely sure
-# Can use this as an alternative to downsampling, also can crop form different places for data augmentation
-class CenterCropTensor(object):
-    def __init__(self, size):
-        if isinstance(size, int):
-            self.out_size = (int(size), int(size))
-        else:
-            self.out_size = size
-
-    def __call__(self, tensor):
-        tensor_height, tensor_width = tensor.size()[1:]
-        crop_height, crop_width = self.out_size
-        crop_top = int(round((tensor_height - crop_height) / 2.))
-        crop_left = int(round((tensor_width - crop_width) / 2.))
-        crop_bot = tensor_height-crop_top - self.out_size[0]
-        crop_right = tensor_width-crop_left - self.out_size[0]
-        return tensor[:, crop_top:tensor_height-crop_bot, crop_left:tensor_width-crop_right]
-
-
 for i in range(1):
     centerCrop = CenterCropTensor(256)
     im, t = coco_val[i]
@@ -132,54 +112,12 @@ for i in range(1):
     print(mask.shape)
 
 
-
-#  Example of lazy processing some code stolen from utils
-class TransformAnn(object):
-    # Could modify to take in cat_ids, and thus only consider masks for certain ids i.e people
-    def __init__(self, cat_ids=None):
-        pass
-
-    def __call__(self, annotations):
-        """
-        we create masks as a tensor with dimensions [91, size, size]. layer i represents the mask from the ith category
-        WARNING: ALL MASKS OF THE SAME CATEGORY WILL BE COMBINED
-        if the ith category is not present, then it will be all 0s
-        for the categories that don't correspond to any object, their respective layers will also be 0
-        """
-        height, width = coco.annToMask(annotations[0]).shape
-        masks = torch.zeros((91, height, width))
-        for j in range(len(annotations)):
-            mask = coco.annToMask(annotations[j])
-            masks[int(annotations[j]['category_id']), :, :] += mask
-
-        #  Could consider returning original annotation if we need that as well
-        return masks
-
-
-
-class transformCoCoPairs(object):
-    def __init__(self, size, cat_ids=None):
-        self.crop = CenterCropTensor(size)
-        self.annTransform = TransformAnn(cat_ids)
-
-        self.input_transform = transforms.Compose(
-                                  [transforms.ToTensor(),
-                                   self.crop])
-        self.target_transform = transforms.Compose(
-                                  [self.annTransform ,
-                                   self.crop])
-
-    def __call__(self, image, annotations):
-        print("image{0}:, annoations_size:{1}".format(image, len(annotations)))
-        return self.input_transform(image), self.target_transform(annotations)
-
-
 # loads the dataset, but this time automatically applies the given transforms when retrieving data
 # I believe things are returned as (N, C, H, W) even if we only get one item
 coco_val = dset.CocoDetection(root=path + 'COCO_DATASET/val2017',
                               annFile=path + 'COCO_DATASET/annotations/instances_val2017.json',
                               transforms=transformCoCoPairs(256))
-#instead of using transformCoCoPairs we can add this I believe
+# instead of using transformCoCoPairs we can add this I believe
 """transform=transforms.Compose(
   [transforms.ToTensor(),
    CenterCropTensor(256)]),
@@ -212,6 +150,8 @@ for i in range(1):
     ims, tgs = next(iter(dataloader))
     print(ims.size(), tgs.size())
 
+    print(len(coco_val))
+    print(len(dataloader))
     for i in range(ims.size()[0]):
         img = ims[i,:,:,:]
         tg = tgs[i,:,:,:]
