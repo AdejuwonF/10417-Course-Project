@@ -104,6 +104,8 @@ class CenterCropTensor(object):
             self.out_size = size
 
     def __call__(self, tensor):
+        if len(tensor.size()) < 4:
+            tensor = tensor.unsqueeze(0)
         tensor_height, tensor_width = tensor.size()[2:]
         crop_height, crop_width = self.out_size
         crop_top = int(round((tensor_height - crop_height) / 2.))
@@ -131,3 +133,53 @@ for i in range(1):
     plt.imshow(mask.permute(1, 2, 0))
     plt.show()
     print(mask.shape)
+
+
+
+
+
+# Example of lazy processing some code stolen from utils
+class TransformAnn(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, anns):
+        """
+        we create masks as a tensor with dimensions [91, size, size]. layer i represents the mask from the ith category
+        WARNING: ALL MASKS OF THE SAME CATEGORY WILL BE COMBINED
+        if the ith category is not present, then it will be all 0s
+        for the categories that don't correspond to any object, their respective layers will also be 0
+        """
+        height, width = coco.annToMask(anns[0]).shape
+        masks = torch.zeros((91, height, width))
+        for j in range(len(anns)):
+            mask = coco.annToMask(anns[j])
+            masks[int(anns[j]['category_id']), :, :] += mask
+        return masks
+
+coco_val = dset.CocoDetection(root=path + 'COCO_DATASET/val2017',
+                              annFile=path + 'COCO_DATASET/annotations/instances_val2017.json',
+                              transform=transforms.Compose(
+                                  [transforms.ToTensor(),
+                                   CenterCropTensor(256)]),
+                              target_transform=transforms.Compose(
+                                  [TransformAnn(),
+                                   CenterCropTensor(256)]))
+
+
+for i in range(1):
+    im, t = coco_val[i]
+    print(im.size(), t.size())
+    plt.imshow(im.squeeze().permute(1, 2, 0))
+    plt.show()
+
+    masks = t
+    layer = 4
+    # 62 is cat id for chair
+    plt.imshow(masks[:, 62, :, :].permute(1, 2, 0))
+    plt.show()
+
+    combinedMasks, indices = torch.max(masks, dim=1)
+    plt.imshow(combinedMasks.permute(1, 2, 0))
+    plt.show()
+    print(masks.shape)
