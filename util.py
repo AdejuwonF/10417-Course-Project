@@ -101,7 +101,7 @@ def fancy_train(model, dataset, epochs, batch_size, validation_dataset, optimize
 def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, loss_func, layers=None):
     len_dataset = len(dataset)
     train_loss = []
-    val_loss = []
+    validation_loss = []
     for epoch in range(epochs):
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
         num_batches = len(loader)
@@ -113,7 +113,7 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
             ims, tgs = next(iter(loader))
 
             if layers is not None:
-                tgs = tgs[layers]
+                tgs = tgs[:,layers,:,:]
             else:
                 tgs, indices = torch.max(tgs, dim=1)
                 tgs = tgs.unsqueeze(1)
@@ -131,10 +131,15 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
         model.eval()
         val_loader = DataLoader(validation_dataset, shuffle=False)
         ims, tgs = next(iter(val_loader))
+        if layers is not None:
+            tgs = tgs[:, layers, :, :]
+        else:
+            tgs, indices = torch.max(tgs, dim=1)
+            tgs = tgs.unsqueeze(1)
         outs = model.forward(ims)
         val_loss = loss_func(outs, tgs)
         print("epoch: " + str(epoch) + " val loss: " + str(val_loss))
-        val_loss.append(val_loss)
+        validation_loss.append(val_loss.item())
 
     return train_loss, val_loss
 

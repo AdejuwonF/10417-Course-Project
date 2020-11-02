@@ -61,19 +61,19 @@ class DeconvNet(nn.Module):
         # print("third upsample layer: {0}".format(x.shape))
         return x
 
-net = DeconvNet()
-coco_val = dset.CocoDetection(root=path + 'COCO_DATASET/val2017',
-                              annFile=path + 'COCO_DATASET/annotations/instances_val2017.json',
-                              transforms=transformCoCoPairs(128))
-
-"""coco_train = dset.CocoDetection(root=path + 'COCO_DATASET/train2017',
-                                annFile=path + 'COCO_DATASET/annotations/instances_train2017.json',
-                                transforms=transformCoCoPairs(128))"""
-
-optimizer = optim.Adam(net.parameters(), lr=0.01)
-loss_func = nn.BCELoss()
-
-train_loss, val_loss = util.train(net, coco_val, 5, 50, coco_val, optimizer, loss_func)
+# net = DeconvNet()
+# coco_val = dset.CocoDetection(root=path + 'COCO_DATASET/val2017',
+#                               annFile=path + 'COCO_DATASET/annotations/instances_val2017.json',
+#                               transforms=transformCoCoPairs(128))
+#
+# """coco_train = dset.CocoDetection(root=path + 'COCO_DATASET/train2017',
+#                                 annFile=path + 'COCO_DATASET/annotations/instances_train2017.json',
+#                                 transforms=transformCoCoPairs(128))"""
+#
+# optimizer = optim.Adam(net.parameters(), lr=0.01)
+# loss_func = nn.BCELoss()
+# print("kadjshfjkahdsf")
+# train_loss, val_loss = util.train(net, coco_val, 5, 50, coco_val, optimizer, loss_func)
 
 # dataloader = DataLoader(coco_val, batch_size=1, shuffle=False, num_workers=0)
 # ims, tgs = next(iter(dataloader))

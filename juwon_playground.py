@@ -35,7 +35,7 @@ print(imgIds)
 coco_val_people = CocoDetectionCatIds(root=path + 'COCO_DATASET/val2017',
                               annFile=path + 'COCO_DATASET/annotations/instances_val2017.json',
                               catIds = catIds,
-                              transforms=transformCoCoPairs(256))
+                              transforms=transformCoCoPairs(128))
 print(len(coco_val_people))
 
 
@@ -43,4 +43,27 @@ net = DeconvNet()
 optimizer = optim.Adam(net.parameters(), lr=0.01)
 loss_func = nn.BCELoss()
 
-train_loss, val_loss = util.train(net, coco_val_people, 5, 50, coco_val_people, optimizer, loss_func)
+img, mask = coco_val_people[3]
+print(img.shape, mask.shape)
+plt.imshow(img.permute(1, 2, 0))
+plt.show()
+
+#  Puts all the masks into one channel
+plt.imshow(mask[1,:,:].unsqueeze(0).permute(1, 2, 0))
+plt.show()
+
+with torch.no_grad():
+    pred_mask = net.forward(img.unsqueeze(0))
+    plt.imshow(pred_mask.squeeze(0).permute(1, 2, 0))
+    plt.show()
+
+train_loss, val_loss = util.train(net, coco_val_people, 1, 50, coco_val_people, optimizer, loss_func, layers=[1])
+
+with torch.no_grad():
+    pred_mask = net.forward(img.unsqueeze(0))
+    plt.imshow(pred_mask.squeeze(0).permute(1, 2, 0))
+    plt.show()
+
+
+
+
