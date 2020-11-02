@@ -103,13 +103,13 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
     train_loss = []
     validation_loss = []
     for epoch in range(epochs):
+        start = time.time()
+        model.train()
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
         num_batches = len(loader)
         print(num_batches)
         epoch_loss = 0.0
         for i in range(num_batches):
-            print(i)
-            start_time = time.time()
             ims, tgs = next(iter(loader))
 
             if layers is not None:
@@ -124,22 +124,24 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
             epoch_loss += loss.item()
             loss.backward()
             optimizer.step()
-            print("Batch took: {0}s".format(time.time()-start_time))
         print("epoch: " + str(epoch) + " train loss: " + str(epoch_loss / num_batches))
         train_loss.append(epoch_loss / num_batches)
 
         model.eval()
-        val_loader = DataLoader(validation_dataset, shuffle=False)
-        ims, tgs = next(iter(val_loader))
-        if layers is not None:
-            tgs = tgs[:, layers, :, :]
-        else:
-            tgs, indices = torch.max(tgs, dim=1)
-            tgs = tgs.unsqueeze(1)
-        outs = model.forward(ims)
-        val_loss = loss_func(outs, tgs)
-        print("epoch: " + str(epoch) + " val loss: " + str(val_loss))
-        validation_loss.append(val_loss.item())
+        val_loader = DataLoader(validation_dataset,batch_size=batch_size, shuffle=False)
+        val_loss = 0
+        for i in range(len(val_loader)):
+            ims, tgs = next(iter(val_loader))
+            if layers is not None:
+                tgs = tgs[:, layers, :, :]
+            else:
+                tgs, indices = torch.max(tgs, dim=1)
+                tgs = tgs.unsqueeze(1)
+            outs = model.forward(ims)
+            val_loss += loss_func(outs, tgs).item()
+        print("epoch: " + str(epoch) + " val loss: " + str(val_loss / len(val_loader)))
+        validation_loss.append(val_loss)
+        print("epoch took {0}s".format(time.time()-start))
 
     return train_loss, val_loss
 

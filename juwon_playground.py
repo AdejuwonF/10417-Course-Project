@@ -57,7 +57,7 @@ with torch.no_grad():
     plt.imshow(pred_mask.squeeze(0).permute(1, 2, 0))
     plt.show()
 
-train_loss, val_loss = util.train(net, coco_val_people, 1, 50, coco_val_people, optimizer, loss_func, layers=[1])
+# train_loss, val_loss = util.train(net, coco_val_people, 1, 50, coco_val_people, optimizer, loss_func, layers=[1])
 
 with torch.no_grad():
     pred_mask = net.forward(img.unsqueeze(0))
