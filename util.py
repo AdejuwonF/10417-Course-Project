@@ -4,6 +4,7 @@ import torch.functional as F
 import torch.nn.functional
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
+from torchvision.datasets.vision import VisionDataset
 import pycocotools
 from pycocotools.coco import COCO
 import matplotlib as plt
@@ -13,6 +14,10 @@ import pickle as pk
 from tqdm import tqdm
 import os.path as osp
 from torch.utils.data import DataLoader
+import time
+from PIL import Image
+import os
+import os.path
 
 path = ""
 
@@ -100,8 +105,11 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
     for epoch in range(epochs):
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
         num_batches = len(loader)
+        print(num_batches)
         epoch_loss = 0.0
-        for i in range(int(len_dataset / batch_size)):
+        for i in range(num_batches):
+            print(i)
+            start_time = time.time()
             ims, tgs = next(iter(loader))
 
             if layers is not None:
@@ -116,6 +124,7 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
             epoch_loss += loss.item()
             loss.backward()
             optimizer.step()
+            print("Batch took: {0}s".format(time.time()-start_time))
         print("epoch: " + str(epoch) + " train loss: " + str(epoch_loss / num_batches))
         train_loss.append(epoch_loss / num_batches)
 
@@ -181,8 +190,9 @@ class TransformAnn(object):
         for the categories that don't correspond to any object, their respective layers will also be 0
         """
         if len(annotations) == 0:
-            print("fuck")
-        height, width = self.coco.annToMask(annotations[0]).shape
+            height, width = 256, 256
+        else:
+            height, width = self.coco.annToMask(annotations[0]).shape
         masks = torch.zeros((91, height, width))
         for j in range(len(annotations)):
             mask = self.coco.annToMask(annotations[j])
@@ -208,3 +218,51 @@ class transformCoCoPairs(object):
         #print("image{0}:, annoations_size:{1}".format(image, len(annotations)))
         return self.input_transform(image), self.target_transform(annotations)
 
+
+class CocoDetectionCatIds(VisionDataset):
+    """`MS Coco Detection <http://mscoco.org/dataset/#detections-challenge2016>`_ Dataset.
+
+    Args:
+        root (string): Root directory where images are downloaded to.
+        annFile (string): Path to json annotation file.
+        transform (callable, optional): A function/transform that  takes in an PIL image
+            and returns a transformed version. E.g, ``transforms.ToTensor``
+        target_transform (callable, optional): A function/transform that takes in the
+            target and transforms it.
+        transforms (callable, optional): A function/transform that takes input sample and its target as entry
+            and returns a transformed version.
+    """
+
+    def __init__(self, root, annFile, catIds=None, transform=None, target_transform=None, transforms=None):
+        super(CocoDetectionCatIds, self).__init__(root, transforms, transform, target_transform)
+        from pycocotools.coco import COCO
+        self.coco = COCO(annFile)
+        self.catIds = catIds
+        if catIds is None:
+            self.ids = list(sorted(self.coco.imgs.keys()))
+        else:
+            self.ids = sorted(list(self.coco.getImgIds(catIds=catIds)))
+
+    def __getitem__(self, index):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
+        coco = self.coco
+        img_id = self.ids[index]
+        ann_ids = coco.getAnnIds(imgIds=img_id)
+        target = coco.loadAnns(ann_ids)
+
+        path = coco.loadImgs(img_id)[0]['file_name']
+
+        img = Image.open(os.path.join(self.root, path)).convert('RGB')
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
+
+        return img, target
+
+    def __len__(self):
+        return len(self.ids)

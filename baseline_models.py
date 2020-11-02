@@ -12,17 +12,25 @@ class DeconvNet(nn.Module):
     def __init__(self):
         super(DeconvNet, self).__init__()
 
-        self.conv1 = nn.Conv2d(3, 16, 3, padding=1)
+        self.conv1 = nn.Conv2d(3, 8, 3, padding=1)
         self.relu1 = nn.ReLU()
         self.maxPool1 = nn.MaxPool2d(2)
-        self.conv2 = nn.Conv2d(16, 32, 3, padding=1)
+
+        self.conv2 = nn.Conv2d(8, 12, 3, padding=1)
         self.relu2 = nn.ReLU()
         self.maxPool2 = nn.MaxPool2d(2)
 
-
-        self.convT1 = nn.ConvTranspose2d(32, 16, 4, 2, 1)
+        self.conv3 = nn.Conv2d(12, 16, 3, padding=1)
         self.relu3 = nn.ReLU()
-        self.convT2 = nn.ConvTranspose2d(16, 1, 4, 2, 1)
+        self.maxPool3 = nn.MaxPool2d(2)
+
+        self.convT1 = nn.ConvTranspose2d(16, 12, 4, 2, 1)
+        self.relu4 = nn.ReLU()
+
+        self.convT2 = nn.ConvTranspose2d(12, 6, 4, 2, 1)
+        self.relu5 = nn.ReLU()
+
+        self.convT3 = nn.ConvTranspose2d(6, 1, 4, 2, 1)
         self.sigmoid = nn.Sigmoid()
 
 
@@ -35,14 +43,22 @@ class DeconvNet(nn.Module):
         x = self.relu2(x)
         x = self.maxPool2(x)
         #print("second downsample layer: {0}".format(x.shape))
+        x = self.conv3(x)
+        x = self.relu3(x)
+        x = self.maxPool3(x)
+        #print("third downsample layer: {0}".format(x.shape))
+
 
         x = self.convT1(x)
-        x =self.relu3(x)
+        x =self.relu4(x)
         #print("first upsample layer: {0}".format(x.shape))
 
         x = self.convT2(x)
-        x = self.sigmoid(x)
+        x = self.relu5(x)
         #print("second upsample layer: {0}".format(x.shape))
+        x = self.convT3(x)
+        x = self.sigmoid(x)
+        # print("third upsample layer: {0}".format(x.shape))
         return x
 
 net = DeconvNet()
@@ -50,10 +66,14 @@ coco_val = dset.CocoDetection(root=path + 'COCO_DATASET/val2017',
                               annFile=path + 'COCO_DATASET/annotations/instances_val2017.json',
                               transforms=transformCoCoPairs(128))
 
+"""coco_train = dset.CocoDetection(root=path + 'COCO_DATASET/train2017',
+                                annFile=path + 'COCO_DATASET/annotations/instances_train2017.json',
+                                transforms=transformCoCoPairs(128))"""
+
 optimizer = optim.Adam(net.parameters(), lr=0.01)
 loss_func = nn.BCELoss()
 
-util.train(net, coco_val, 5, 50, coco_val, optimizer, loss_func)
+train_loss, val_loss = util.train(net, coco_val, 5, 50, coco_val, optimizer, loss_func)
 
 # dataloader = DataLoader(coco_val, batch_size=1, shuffle=False, num_workers=0)
 # ims, tgs = next(iter(dataloader))
