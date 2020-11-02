@@ -107,7 +107,6 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
         model.train()
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
         num_batches = len(loader)
-        print(num_batches)
         epoch_loss = 0.0
         for i in range(num_batches):
             ims, tgs = next(iter(loader))
@@ -143,7 +142,7 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
         validation_loss.append(val_loss)
         print("epoch took {0}s".format(time.time()-start))
 
-    return train_loss, val_loss
+    return train_loss, validation_loss
 
 
 # some function for evaluating. not yet implemented

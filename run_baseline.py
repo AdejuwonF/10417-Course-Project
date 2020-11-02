@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     print(len(train_dataset), len(valid_dataset))
 
-    train_loss, val_loss = util.train(net, train_dataset, 2, 50, valid_dataset, optimizer, loss_func, layers=[1])
+    train_loss, val_loss = util.train(net, train_dataset, 0, 50, valid_dataset, optimizer, loss_func, layers=[1])
 
     with open("./baseline_train_loss.pk", "wb") as F:
         pk.dump(train_loss, F)
@@ -54,23 +54,13 @@ if __name__ == "__main__":
         pk.dump(val_loss, F)
         F.close()
 
-    with torch.no_grad():
-        img, _ = coco_val_people[3]
-        pred_mask = net.forward(img.unsqueeze(0))
-        plt.imshow(pred_mask.squeeze(0).permute(1, 2, 0))
-        plt.show()
+    torch.save(net, "./baseline_model_epoch_100")
+    loaded_net = torch.load("./baseline_model_epoch_100")
 
-    torch.save(net.state_dict(), "./baseline_model_epoch_100")
     torch.save({
         'model_state_dict': net.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-    }, "./baseline_model_epoch_100")
-    loaded_dict = torch.load("./baseline_model_epoch_100")
-    loaded_net = DeconvNet()
+    }, "./baseline_model_epoch_100_checkpoint")
+    loaded_dict = torch.load("./baseline_model_epoch_100_checkpoint")
     loaded_net.load_state_dict(loaded_dict["model_state_dict"])
 
-    with torch.no_grad():
-        img, _ = coco_val_people[3]
-        pred_mask = loaded_net.forward(img.unsqueeze(0))
-        plt.imshow(pred_mask.squeeze(0).permute(1, 2, 0))
-        plt.show()

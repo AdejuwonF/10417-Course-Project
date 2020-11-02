@@ -24,13 +24,13 @@ class DeconvNet(nn.Module):
         self.relu3 = nn.ReLU()
         self.maxPool3 = nn.MaxPool2d(2)
 
-        self.convT1 = nn.ConvTranspose2d(16, 12, 4, 2, 1)
+        self.convT1 = nn.ConvTranspose2d(16, 8, 4, 2, 1)
         self.relu4 = nn.ReLU()
 
-        self.convT2 = nn.ConvTranspose2d(12, 6, 4, 2, 1)
+        self.convT2 = nn.ConvTranspose2d(8, 4, 4, 2, 1)
         self.relu5 = nn.ReLU()
 
-        self.convT3 = nn.ConvTranspose2d(6, 1, 4, 2, 1)
+        self.convT3 = nn.ConvTranspose2d(4, 1, 4, 2, 1)
         self.sigmoid = nn.Sigmoid()
 
 
@@ -75,6 +75,10 @@ class DeconvNet(nn.Module):
 # print("kadjshfjkahdsf")
 # train_loss, val_loss = util.train(net, coco_val, 5, 50, coco_val, optimizer, loss_func)
 
+# coco_val = dset.CocoDetection(root=path + 'COCO_DATASET/val2017',
+#                                annFile=path + 'COCO_DATASET/annotations/instances_val2017.json',
+#                                transforms=transformCoCoPairs(128))
+# net = DeconvNet()
 # dataloader = DataLoader(coco_val, batch_size=1, shuffle=False, num_workers=0)
 # ims, tgs = next(iter(dataloader))
 # outs = net.forward(ims)
@@ -97,19 +101,15 @@ class DeconvNet(nn.Module):
 # optimizer = optim.Adam(net.parameters(), lr=0.01)
 # criterion = nn.BCELoss()
 #
-# for i in range(10000):
+# for i in range(3000):
 #     optimizer.zero_grad()
 #     outs = net.forward(ims)
-#     target = combinedMasks.unsqueeze(0)
+#     target = combinedMasks.unsqueeze(0).unsqueeze(0)
 #     loss = criterion(outs, target)
 #     loss.backward()
 #     optimizer.step()
 #     print(i, loss)
-
-
-
-
-
+#
 # outs = net.forward(ims)
 # out = outs[0, :, :, :]
 # print(img.size(), tg.size(), out.size())
