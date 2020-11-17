@@ -8,58 +8,41 @@ from torch.utils.data import DataLoader
 from util import CenterCropTensor, TransformAnn, transformCoCoPairs
 import matplotlib.pyplot as plt
 path = ""
+
+nf = 64
 class DeconvNet(nn.Module):
     def __init__(self):
         super(DeconvNet, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Conv2d(3, nf, 3, padding=1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.MaxPool2d(2),
 
-        self.conv1 = nn.Conv2d(3, 8, 3, padding=1)
-        self.relu1 = nn.ReLU()
-        self.maxPool1 = nn.MaxPool2d(2)
+            nn.Conv2d(nf, 2 * nf, 3, padding=1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.MaxPool2d(2),
 
-        self.conv2 = nn.Conv2d(8, 12, 3, padding=1)
-        self.relu2 = nn.ReLU()
-        self.maxPool2 = nn.MaxPool2d(2)
+            nn.Conv2d(2 * nf, 4 * nf, 3, padding=1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.MaxPool2d(2),
+        )
 
-        self.conv3 = nn.Conv2d(12, 16, 3, padding=1)
-        self.relu3 = nn.ReLU()
-        self.maxPool3 = nn.MaxPool2d(2)
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(4 * nf, 2 * nf, 4, 2, 1),
+            nn.LeakyReLU(0.2, inplace=True),
 
-        self.convT1 = nn.ConvTranspose2d(16, 8, 4, 2, 1)
-        self.relu4 = nn.ReLU()
+            nn.ConvTranspose2d(2 * nf, nf, 4, 2, 1),
+            nn.LeakyReLU(0.2, inplace=True),
 
-        self.convT2 = nn.ConvTranspose2d(8, 4, 4, 2, 1)
-        self.relu5 = nn.ReLU()
-
-        self.convT3 = nn.ConvTranspose2d(4, 1, 4, 2, 1)
-        self.sigmoid = nn.Sigmoid()
-
+            nn.ConvTranspose2d(nf, 1, 4, 2, 1),
+            nn.Sigmoid()
+        )
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.relu1(x)
-        x = self.maxPool1(x)
-        #print("first downsample layer: {0}".format(x.shape))
-        x = self.conv2(x)
-        x = self.relu2(x)
-        x = self.maxPool2(x)
-        #print("second downsample layer: {0}".format(x.shape))
-        x = self.conv3(x)
-        x = self.relu3(x)
-        x = self.maxPool3(x)
-        #print("third downsample layer: {0}".format(x.shape))
+        encoding = self.encoder.forward(x)
+        mask = self.decoder.forward(encoding)
+        return mask
 
-
-        x = self.convT1(x)
-        x =self.relu4(x)
-        #print("first upsample layer: {0}".format(x.shape))
-
-        x = self.convT2(x)
-        x = self.relu5(x)
-        #print("second upsample layer: {0}".format(x.shape))
-        x = self.convT3(x)
-        x = self.sigmoid(x)
-        # print("third upsample layer: {0}".format(x.shape))
-        return x
 
 # net = DeconvNet()
 # coco_val = dset.CocoDetection(root=path + 'COCO_DATASET/val2017',
@@ -98,10 +81,10 @@ class DeconvNet(nn.Module):
 # plt.imshow(out.permute(1, 2, 0).detach().numpy())
 # plt.show()
 #
-# optimizer = optim.Adam(net.parameters(), lr=0.01)
+# optimizer = optim.Adam(net.parameters(), lr=0.0001)
 # criterion = nn.BCELoss()
 #
-# for i in range(3000):
+# for i in range(0):
 #     optimizer.zero_grad()
 #     outs = net.forward(ims)
 #     target = combinedMasks.unsqueeze(0).unsqueeze(0)
