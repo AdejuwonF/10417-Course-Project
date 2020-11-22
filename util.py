@@ -139,7 +139,7 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
             outs = model.forward(ims)
             val_loss += loss_func(outs, tgs).item()
         print("epoch: " + str(epoch) + " val loss: " + str(val_loss / len(val_loader)))
-        validation_loss.append(val_loss)
+        validation_loss.append(val_loss/len(val_loader))
         print("epoch took {0}s".format(time.time()-start))
 
     return train_loss, validation_loss
@@ -180,6 +180,20 @@ class CenterCropTensor(object):
         crop_right = tensor_width-crop_left - self.out_size[0]
         return tensor[:, crop_top:tensor_height-crop_bot, crop_left:tensor_width-crop_right]
 
+class BotCropTensor(object):
+    def __init__(self, size):
+        if isinstance(size, int):
+            self.out_size = (int(size), int(size))
+        else:
+            self.out_size = size
+
+    def __call__(self, tensor):
+        tensor_height, tensor_width = tensor.size()[1:]
+        crop_height, crop_width = self.out_size
+        crop_bot = tensor_height - crop_height
+        crop_left = int(round((tensor_width - crop_width) / 2.))
+        crop_right = tensor_width-crop_left - self.out_size[0]
+        return tensor[:, :tensor_height-crop_bot, crop_left:tensor_width-crop_right]
 
 #  Example of lazy processing some code stolen from utils
 class TransformAnn(object):
@@ -272,3 +286,33 @@ class CocoDetectionCatIds(VisionDataset):
 
     def __len__(self):
         return len(self.ids)
+
+
+class ResizeTensor(object):
+    def __init__(self, size=256, mode="bicubic"):
+        self.size = size
+        self.mode = mode
+
+    def __call__(self, tensor):
+        tensor = tensor.unsqueeze(0)
+        resized = torch.nn.functional.interpolate(tensor, size=self.size, mode=self.mode)
+        resized = resized.squeeze(0)
+        return resized.clamp(0)
+
+
+class transformCoCoPairsResize(object):
+    def __init__(self, size, cat_ids=None):
+        self.resize = ResizeTensor(size)
+        self.annTransform = TransformAnn(cat_ids)
+
+        self.input_transform = transforms.Compose(
+                                  [transforms.ToTensor(),
+                                   self.resize])
+        self.target_transform = transforms.Compose(
+                                  [self.annTransform,
+                                   self.resize])
+
+    def __call__(self, image, annotations):
+        #print("image{0}:, annoations_size:{1}".format(image, len(annotations)))
+        return self.input_transform(image), self.target_transform(annotations) > .1
+

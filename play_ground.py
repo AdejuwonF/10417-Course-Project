@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import PIL
 import skimage.io as io
 
-from util import CenterCropTensor, TransformAnn, transformCoCoPairs
+from util import CenterCropTensor, TransformAnn, transformCoCoPairs, transformCoCoPairsResize
 
 #path = "./"
 path = ""
@@ -67,18 +67,20 @@ for i in range(1):
 
     im = im.unsqueeze(0)
     print(im.size())
-    resized = torch.nn.functional.interpolate(im, size=256)
+    resized = torch.nn.functional.interpolate(im, size=256, mode="bicubic")
     resized = resized.squeeze(0)
     plt.imshow(resized.permute(1, 2, 0))
     plt.show()
 
     mask = torch.from_numpy(mask).unsqueeze(0)
     mask = mask.unsqueeze(0)
-    mask = torch.nn.functional.interpolate(mask, size=256)
+    mask = mask.type(torch.DoubleTensor)
+    mask = torch.nn.functional.interpolate(mask, size=256, mode="bicubic")
+    mask = mask > .1
     mask = mask.squeeze(0)
     plt.imshow(mask.permute(1, 2, 0))
     plt.show()
-    print(mask.shape)
+    print(mask.shape, mask.type)
 
     print(anns[1])
 
@@ -127,6 +129,44 @@ target_transform=transforms.Compose(
 
 
 
+for i in range(1):
+    im, t = coco_val[i]
+    print(im.size(), t.size())
+    plt.imshow(im.permute(1, 2, 0))
+    plt.show()
+
+    masks = t
+    layer = 4
+    # 62 is cat id for chair
+    plt.imshow(masks[62, :, :].unsqueeze(0).permute(1, 2, 0))
+    plt.show()
+
+    #  Puts all the masks into one channel
+    combinedMasks, indices = torch.max(masks, dim=0)
+    plt.imshow(combinedMasks.unsqueeze(0).permute(1, 2, 0))
+    plt.show()
+    print(masks.shape)
+
+    #  Need dataloader to get multiple things easily.  Datasets don't seem to like slicing
+    dataloader = DataLoader(coco_val, batch_size=4, shuffle=True, num_workers=0)
+    ims, tgs = next(iter(dataloader))
+    print(ims.size(), tgs.size())
+
+    print(len(coco_val))
+    print(len(dataloader))
+    for i in range(ims.size()[0]):
+        img = ims[i,:,:,:]
+        tg = tgs[i,:,:,:]
+
+        plt.imshow(img.permute(1, 2, 0))
+        plt.show()
+        combinedMasks, indices = torch.max(tg, dim=0)
+        plt.imshow(combinedMasks.unsqueeze(0).permute(1, 2, 0))
+        plt.show()
+
+coco_val = dset.CocoDetection(root=path + 'COCO_DATASET/val2017',
+                              annFile=path + 'COCO_DATASET/annotations/instances_val2017.json',
+                              transforms=transformCoCoPairsResize(256))
 for i in range(1):
     im, t = coco_val[i]
     print(im.size(), t.size())

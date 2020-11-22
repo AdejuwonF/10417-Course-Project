@@ -39,9 +39,7 @@ coco_val_people = CocoDetectionCatIds(root=path + 'COCO_DATASET/val2017',
 print(len(coco_val_people))
 
 
-net = DeconvNet()
-optimizer = optim.Adam(net.parameters(), lr=0.01)
-loss_func = nn.BCELoss()
+net = torch.load("/Users/adejuwon/Desktop/CMU School Junk/Fall 2020/10417 Intermediate Deep Learning/Course Project/baseline_model_epoch_100")
 
 img, mask = coco_val_people[3]
 print(img.shape, mask.shape)
@@ -56,8 +54,6 @@ with torch.no_grad():
     pred_mask = net.forward(img.unsqueeze(0))
     plt.imshow(pred_mask.squeeze(0).permute(1, 2, 0))
     plt.show()
-
-# train_loss, val_loss = util.train(net, coco_val_people, 1, 50, coco_val_people, optimizer, loss_func, layers=[1])
 
 with torch.no_grad():
     pred_mask = net.forward(img.unsqueeze(0))
