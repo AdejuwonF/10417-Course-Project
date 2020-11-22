@@ -102,6 +102,7 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
     len_dataset = len(dataset)
     train_loss = []
     validation_loss = []
+    model.to(get_device())
     for epoch in range(epochs):
         start = time.time()
         model.train()
