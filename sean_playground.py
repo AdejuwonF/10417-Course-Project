@@ -12,6 +12,7 @@ import PIL
 import skimage.io as io
 
 from util import CenterCropTensor, TransformAnn, transformCoCoPairs
+import pickle as pk
 
 annFile = 'COCO_DATASET/annotations/instances_val2017.json'
 coco=COCO(annFile)
@@ -21,6 +22,11 @@ filter_classes = "person"
 # coco_val = dset.CocoDetection(root='COCO_DATASET/val2017',
 #                         annFile='COCO_DATASET/annotations/instances_val2017.json',
 #                         transform=transforms.ToTensor())
+
+with open("/Users/sean/Downloads/baseline_train_loss.pk", 'rb') as f:
+    loss = pk.load(f)
+    print(loss)
+
 
 catIds = coco.getCatIds(catNms=filter_classes)
 imgIds = coco.getImgIds(catIds=catIds)

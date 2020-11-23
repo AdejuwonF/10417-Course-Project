@@ -102,7 +102,8 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
     len_dataset = len(dataset)
     train_loss = []
     validation_loss = []
-    model.to(get_device())
+    device = get_device()
+    model.to(device)
     for epoch in range(epochs):
         start = time.time()
         model.train()
@@ -110,6 +111,8 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
         num_batches = len(loader)
         epoch_loss = 0.0
         for i, (ims, tgs) in enumerate(loader):
+            ims = ims.to(device)
+            tgs = tgs.to(device)
             if layers is not None:
                 tgs = tgs[:,layers,:,:]
             else:
@@ -130,6 +133,8 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
         val_loss = 0
         for i in range(len(val_loader)):
             ims, tgs = next(iter(val_loader))
+            ims = ims.to(device)
+            tgs = tgs.to(device)
             if layers is not None:
                 tgs = tgs[:, layers, :, :]
             else:
