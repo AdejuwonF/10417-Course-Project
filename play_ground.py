@@ -166,7 +166,7 @@ for i in range(1):
 
 coco_val = dset.CocoDetection(root=path + 'COCO_DATASET/val2017',
                               annFile=path + 'COCO_DATASET/annotations/instances_val2017.json',
-                              transforms=transformCoCoPairsResize(256))
+                              transforms=transformCoCoPairsResize(128))
 for i in range(1):
     im, t = coco_val[i]
     print(im.size(), t.size())

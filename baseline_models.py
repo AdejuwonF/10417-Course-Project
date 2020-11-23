@@ -5,11 +5,12 @@ import torch.functional as F
 import util
 import torchvision.datasets as dset
 from torch.utils.data import DataLoader
-from util import CenterCropTensor, TransformAnn, transformCoCoPairs
+from util import CenterCropTensor, TransformAnn, transformCoCoPairs, transformCoCoPairsResize
 import matplotlib.pyplot as plt
 path = ""
 
 nf = 64
+img_size = 128
 class DeconvNet(nn.Module):
     def __init__(self):
         super(DeconvNet, self).__init__()
@@ -60,10 +61,11 @@ class DeconvNet(nn.Module):
 
 # coco_val = dset.CocoDetection(root=path + 'COCO_DATASET/val2017',
 #                                annFile=path + 'COCO_DATASET/annotations/instances_val2017.json',
-#                                transforms=transformCoCoPairs(128))
+#                                transforms=transformCoCoPairsResize(128))
 # net = DeconvNet()
 # dataloader = DataLoader(coco_val, batch_size=1, shuffle=False, num_workers=0)
 # ims, tgs = next(iter(dataloader))
+# print(ims.shape, ims, ims.type())
 # outs = net.forward(ims)
 #
 # img = ims[0,:,:,:]
@@ -84,7 +86,7 @@ class DeconvNet(nn.Module):
 # optimizer = optim.Adam(net.parameters(), lr=0.0001)
 # criterion = nn.BCELoss()
 #
-# for i in range(0):
+# for i in range(1000):
 #     optimizer.zero_grad()
 #     outs = net.forward(ims)
 #     target = combinedMasks.unsqueeze(0).unsqueeze(0)

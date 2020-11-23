@@ -109,8 +109,8 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
         num_batches = len(loader)
         epoch_loss = 0.0
-        for i in range(num_batches):
-            ims, tgs = next(iter(loader))
+        for i, (ims, tgs) in enumerate(loader):
+            print("{0}/{1}".format(i, len(loader)))
 
             if layers is not None:
                 tgs = tgs[:,layers,:,:]
@@ -290,7 +290,7 @@ class CocoDetectionCatIds(VisionDataset):
 
 
 class ResizeTensor(object):
-    def __init__(self, size=256, mode="bicubic"):
+    def __init__(self, size=256, mode="area"):
         self.size = size
         self.mode = mode
 
@@ -298,7 +298,7 @@ class ResizeTensor(object):
         tensor = tensor.unsqueeze(0)
         resized = torch.nn.functional.interpolate(tensor, size=self.size, mode=self.mode)
         resized = resized.squeeze(0)
-        return resized.clamp(0)
+        return resized
 
 
 class transformCoCoPairsResize(object):
@@ -315,5 +315,5 @@ class transformCoCoPairsResize(object):
 
     def __call__(self, image, annotations):
         #print("image{0}:, annoations_size:{1}".format(image, len(annotations)))
-        return self.input_transform(image), self.target_transform(annotations) > .1
+        return self.input_transform(image), (self.target_transform(annotations) > .1).float()
 
