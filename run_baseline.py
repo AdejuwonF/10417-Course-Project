@@ -25,18 +25,18 @@ if __name__ == "__main__":
     optimizer = optim.Adam(net.parameters(), lr=0.01)
     loss_func = nn.BCELoss()
 
-    # annFile_train = 'COCO_DATASET/annotations/instances_train2017.json'
-    # coco_train = COCO(annFile_train)
-    # filter_classes = "person"
-    # catIds_train = coco_train.getCatIds(catNms=filter_classes)
-    # imgIds_train = coco_train.getImgIds(catIds=catIds_train)
-    # print("Number of validation images containing all the classes:", len(imgIds_train))
-    # print(imgIds_train)
-    #
-    # coco_train_people = CocoDetectionCatIds(root=path + 'COCO_DATASET/train2017',
-    #                                       annFile=path + 'COCO_DATASET/annotations/instances_train2017.json',
-    #                                       catIds=catIds_train,
-    #                                       transforms=transformCoCoPairsResize(128))
+    annFile_train = 'COCO_DATASET/annotations/instances_train2017.json'
+    coco_train = COCO(annFile_train)
+    filter_classes = "person"
+    catIds_train = coco_train.getCatIds(catNms=filter_classes)
+    imgIds_train = coco_train.getImgIds(catIds=catIds_train)
+    print("Number of validation images containing all the classes:", len(imgIds_train))
+    print(imgIds_train)
+
+    coco_train_people = CocoDetectionCatIds(root=path + 'COCO_DATASET/train2017',
+                                          annFile=path + 'COCO_DATASET/annotations/instances_train2017.json',
+                                          catIds=catIds_train,
+                                          transforms=transformCoCoPairsResize(128))
 
 
     annFile_val = 'COCO_DATASET/annotations/instances_val2017.json'
@@ -51,30 +51,31 @@ if __name__ == "__main__":
                                           annFile=path + 'COCO_DATASET/annotations/instances_val2017.json',
                                           catIds=catIds_val,
                                           transforms=transformCoCoPairsResize(128))
-    train_size = int(0.8 * len(coco_val_people))
-    test_size = len(coco_val_people) - train_size
-    lengths = [train_size, test_size]
-    train_dataset, valid_dataset = torch.utils.data.dataset.random_split(coco_val_people, lengths)
+    val_size = int(0.8 * len(coco_val_people))
+    test_size = len(coco_val_people) - val_size
+    lengths = [val_size, test_size]
+    val_dataset, test_dataset = torch.utils.data.dataset.random_split(coco_val_people, lengths, generator=torch.Generator().manual_seed(42))
 
-    print(len(train_dataset), len(valid_dataset))
+    print(len(val_dataset), len(test_dataset))
+    print(len(coco_train_people))
 
-    train_loss, val_loss = util.train(net, train_dataset, 1, 50, valid_dataset, optimizer, loss_func, layers=[1])
-
-    with open("./baseline_train_loss.pk", "wb") as F:
-        pk.dump(train_loss, F)
-        F.close()
-
-    with open("./baseline_valid_loss.pk", "wb") as F:
-        pk.dump(val_loss, F)
-        F.close()
-
-    torch.save(net, "./baseline_model_epoch_1")
-    loaded_net = torch.load("./baseline_model_epoch_100")
-
-    torch.save({
-        'model_state_dict': net.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-    }, "./baseline_model_epoch_1_checkpoint")
-    loaded_dict = torch.load("./baseline_model_epoch_100_checkpoint")
-    loaded_net.load_state_dict(loaded_dict["model_state_dict"])
+    # train_loss, val_loss = util.train(net, coco_train_people, 1, 50, val_dataset, optimizer, loss_func, layers=[1])
+    #
+    # with open("./baseline_train_loss.pk", "wb") as F:
+    #     pk.dump(train_loss, F)
+    #     F.close()
+    #
+    # with open("./baseline_valid_loss.pk", "wb") as F:
+    #     pk.dump(val_loss, F)
+    #     F.close()
+    #
+    # torch.save(net, "./baseline_model_epoch_1")
+    # loaded_net = torch.load("./baseline_model_epoch_100")
+    #
+    # torch.save({
+    #     'model_state_dict': net.state_dict(),
+    #     'optimizer_state_dict': optimizer.state_dict(),
+    # }, "./baseline_model_epoch_1_checkpoint")
+    # loaded_dict = torch.load("./baseline_model_epoch_100_checkpoint")
+    # loaded_net.load_state_dict(loaded_dict["model_state_dict"])
 

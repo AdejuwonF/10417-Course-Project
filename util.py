@@ -110,8 +110,6 @@ def train(model, dataset, epochs, batch_size, validation_dataset, optimizer, los
         num_batches = len(loader)
         epoch_loss = 0.0
         for i, (ims, tgs) in enumerate(loader):
-            print("{0}/{1}".format(i, len(loader)))
-
             if layers is not None:
                 tgs = tgs[:,layers,:,:]
             else:
