@@ -25,6 +25,20 @@ path = ""
 def get_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# given two binary tensors y and tgs of equal shape, return # of 1s at both y and tgs over # of 1s in tgs
+def pixel_accuracy(y, tgs):
+    total = torch.sum(tgs)
+    y_tgs_sum = y + tgs
+    overlap = torch.sum(y_tgs_sum == 2)
+    return (overlap / total).item()
+
+# given two binary tensors y and tgs of equal shape, return their intersection over union
+def intersection_over_union(y, tgs):
+    y_tgs_sum = y + tgs
+    intersection = torch.sum(y_tgs_sum == 2)
+    union = torch.sum(y_tgs_sum > 0)
+    return (intersection / union).item()
+
 # pickle and return a list of images and masks from the given dataset and annotations
 # file_prefix defines the prefix of the pickled files
 # size is the size to reshape all the images to
