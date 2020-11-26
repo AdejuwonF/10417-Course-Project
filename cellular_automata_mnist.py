@@ -23,6 +23,9 @@ import pickle as pk
 import time
 import math
 import numpy as np
+import os
+import subprocess
+import glob
 nc = 1
 
 def zero_init(m):
@@ -46,6 +49,7 @@ class CAMnist(nn.Module):
         self.max_pool = nn.MaxPool2d(3, 1, 1)
         self.sigmoid = nn.Sigmoid()
 
+        #Initialize final weights to 0, default to do nothing behavior
         self.update._modules['2'].weight.data.fill_(0)
         self.update._modules['2'].bias.data.fill_(0)
 
@@ -139,7 +143,7 @@ for epoch in range(1,1):
 
         iter_loss += loss.item()
         if i % 200 == 0 and i!=0:
-            print("Iteration {0} of Epoch {1}\n Cumulative Loss:{2}".format(i, epoch, math.log10(iter_loss/200)))
+            print("Iteration {0} of Epoch {1}\n Cumulative Log Loss:{2}".format(i, epoch, math.log10(iter_loss/200)))
             losses.append(math.log10(iter_loss/200))
             iter_loss = 0
 
@@ -170,7 +174,7 @@ mapper = cm.ScalarMappable(norm=norm, cmap=newcmp)
 
 
 # Gets results of 20 steps
-img, tg = dataset[1000]
+img, tg = dataset[1053]
 k=0
 with torch.no_grad():
     outs = [net.forward(img.unsqueeze(0), i) for i in range(20)]
@@ -180,7 +184,26 @@ with torch.no_grad():
 #Displays target colors
 plt.imshow(mapper.to_rgba(torch.argmax(tg, dim=0)*torch.sum(tg, dim=0) - (1-torch.sum(tg, dim=0))), cmap=newcmp)
 
+
 #Can repeatedly call this block to see how cells change
 colored = (torch.argmax(outs[k][:, 10:, :, :], dim=1)*torch.sum(tg, dim=0) - (1-torch.sum(tg, dim=0))).permute([1,2,0]).squeeze(2)
 plt.imshow(mapper.to_rgba(colored), cmap=newcmp)
 k+=1
+
+
+# Adapted from https://stackoverflow.com/questions/34975972/how-can-i-make-a-video-from-array-of-images-in-matplotlib
+def generate_video(predictions, image, video_name="video"):
+    folder = "MNIST_EXAMPLES"
+    for i in range(len(predictions)):
+        colored = (torch.argmax(predictions[i][:, 10:, :, :], dim=1) * torch.sum(image>0.1, dim=0) - (
+                    1 - torch.sum(image>0.1, dim=0))).permute([1, 2, 0]).squeeze(2)
+        plt.imshow(mapper.to_rgba(colored), cmap=newcmp)
+        plt.savefig(folder + "/file%02d.png" % i)
+
+    os.chdir("MNIST_EXAMPLES")
+    subprocess.call([
+        './ffmpeg', '-framerate', '8', '-i', 'file%02d.png', '-r', '30', '-pix_fmt', 'yuv420p',
+        video_name + ".mp4"
+    ])
+    for file_name in glob.glob("*.png"):
+        os.remove(file_name)
