@@ -32,7 +32,11 @@ import pickle as pk
 # imgIds = coco.getImgIds(catIds=catIds)
 # print("Number of images containing all the classes:", len(imgIds))
 
-y = (torch.rand((3,30,40)) > 0.5).to(torch.int32)
-tgs = (torch.rand((3,30,40)) > 0.5).to(torch.int32)
-print(pixel_accuracy(y, tgs))
-print(intersection_over_union(y, tgs))
+# y = (torch.rand((3,30,40)) > 0.5).to(torch.int32)
+# tgs = (torch.rand((3,30,40)) > 0.5).to(torch.int32)
+# print(pixel_accuracy(y, tgs))
+# print(intersection_over_union(y, tgs))
+
+a = [[1, 2], [3, 4]]
+b = torch.as_tensor(a)
+print(b.sum(dim=0))
