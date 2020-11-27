@@ -14,12 +14,13 @@ from torch import optim
 from datetime import datetime
 
 nz = 100
-ngf = 64
-ndf = 64
+ngf = 32
+ndf = 32
 nc = 1
-batch_size = 32
+batch_size = 128
 image_size = 32
 workers = 0
+device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -41,21 +42,20 @@ class Generator(nn.Module):
         )"""
         self.main = nn.Sequential(
             # input is Z, going into a convolution
-            nn.ConvTranspose2d(in_channels=nz, out_channels=ngf * 4, kernel_size=4, stride=1, padding=0, bias=False),
+            nn.ConvTranspose2d(nz, ngf * 4, 4, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 4),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.ReLU(True),
             # state size. (ngf*4) x 4 x 4
             nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf * 2),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.ReLU(True),
             # state size. (ngf*2) x 8 x 8
             nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.ReLU(True),
             # state size. (ngf) x 16 x 16
             nn.ConvTranspose2d(ngf, nc, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(nc),
-            nn.Sigmoid(),
+            nn.Tanh()
             # state size. (nc) x 32 x 32
         )
         self.main.apply(weights_init)
@@ -68,21 +68,36 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
         self.main = nn.Sequential(
-            # inputs is 3 x 32 x 32 image
-            nn.Conv2d(in_channels=nc, out_channels=ndf, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(ndf),
+            # # inputs is 3 x 32 x 32 image
+            # nn.Conv2d(in_channels=nc, out_channels=ndf, kernel_size=4, stride=2, padding=1),
+            # nn.BatchNorm2d(ndf),
+            # nn.LeakyReLU(0.2, inplace=True),
+            # # state size is ndf x 16 x 16
+            # nn.Conv2d(in_channels=ndf, out_channels=ndf * 2, kernel_size=4, stride=2, padding=1),
+            # nn.BatchNorm2d(2*ndf),
+            # nn.LeakyReLU(0.2, inplace=True),
+            # # state size is 2*ndf x 8 x 8
+            # nn.Conv2d(in_channels=2*ndf, out_channels=ndf * 4, kernel_size=4, stride=2, padding=1),
+            # nn.BatchNorm2d(4*ndf),
+            # nn.LeakyReLU(0.2, inplace=True),
+            # # state size is 4*ndf x 4 x 4
+            # nn.AvgPool2d(4)
+            # # state size is 4*ndf x 1 x 1
+            # input is (nc) x 32 x 32
+            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size is ndf x 16 x 16
-            nn.Conv2d(in_channels=ndf, out_channels=ndf * 2, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(2*ndf),
+            # state size. (ndf) x 16 x 16
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size is 2*ndf x 8 x 8
-            nn.Conv2d(in_channels=2*ndf, out_channels=ndf * 4, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(4*ndf),
+            # state size. (ndf*2) x 8 x 8
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size is 4*ndf x 4 x 4
+            # state size. (ndf*4) x 4 x 4
+            # nn.Conv2d(ndf * 4, 1, 4, 1, 0, bias=False),
+            # nn.Sigmoid()
             nn.AvgPool2d(4)
-            # state size is 4*ndf x 1 x 1
         )
         self.fc = nn.Sequential(
             nn.Linear(4*ndf, 1),
@@ -140,11 +155,13 @@ class WGAN(object):
         self.clamp = clamp
         self.G_training_loss = []
         self.D_training_loss = []
+        self.img_list = []
         self.epochs = 0
 
     def train(self, num_epochs, dataloader):
         self.generator.train()
         self.discriminator.train()
+        fixed_noise = torch.randn(64, nz, 1, 1, device=device)
         for epoch in range(num_epochs):
             start = time.time()
             self.epochs += 1
@@ -152,7 +169,9 @@ class WGAN(object):
                 real_samples = data[0]
                 self.optimD.zero_grad()
                 fake_samples = self.generator.forward(torch.randn(real_samples.shape[0], nz, 1, 1))
-                d_loss = torch.mean(self.discriminator.forward(fake_samples)) - torch.mean(self.discriminator.forward(real_samples))
+                fake = self.discriminator.forward(fake_samples)
+                real = self.discriminator.forward(real_samples)
+                d_loss = torch.mean(fake) - torch.mean(real)
                 d_loss.backward()
                 self.optimD.step()
 
@@ -163,7 +182,7 @@ class WGAN(object):
                 fake_samples = self.generator.forward(torch.randn(batch_size, nz, 1, 1))
                 g_loss = -torch.mean(self.discriminator.forward(fake_samples))
                 if i % 5 == 0:
-                    print("Batch:{0} of Epoch:{1}".format(i, epoch))
+                    # print("Batch:{0} of Epoch:{1}".format(i, epoch))
                     self.optimG.zero_grad()
                     self.optimD.zero_grad()
                     g_loss.backward()
@@ -174,6 +193,9 @@ class WGAN(object):
             self.D_training_loss.append(d_loss.item())
             print("Epoch:{0}\nGenerator Loss:{1}\nDiscriminator Loss:{2}".format(epoch, self.G_training_loss[-1],
                                                                                  self.D_training_loss[-1]))
+            with torch.no_grad():
+                fake = self.generator(fixed_noise).detach().cpu()
+            self.img_list.append(fake)
 
     def save(self, fp=None):
         if fp is None:
