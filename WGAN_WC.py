@@ -12,15 +12,23 @@ import util
 import time
 from torch import optim
 from datetime import datetime
+from torchvision.utils import save_image
 
 nz = 100
 ngf = 32
 ndf = 32
 nc = 1
-batch_size = 128
+batch_size = 16
 image_size = 32
 workers = 0
+ngpu=0
 device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
+
+# dataset = dset.MNIST(root="", train=True, download=True,
+#                     transform=transforms.Compose([transforms.Resize(image_size), transforms.ToTensor()]))
+#
+# dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+#                                          shuffle=True, num_workers=0)
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -102,8 +110,8 @@ class WGAN(object):
         self.optimG = optim.RMSprop(modelG.parameters(), .0005)
         self.optimD = optim.RMSprop(modelD.parameters(), .0005)
         self.clamp = clamp
-        self.G_training_loss = []
-        self.D_training_loss = []
+        self.G_losses = []
+        self.D_losses = []
         self.img_list = []
         self.epochs = 0
 
@@ -138,10 +146,10 @@ class WGAN(object):
                     self.optimG.step()
 
             print(time.time() - start)
-            self.G_training_loss.append(g_loss.item())
-            self.D_training_loss.append(d_loss.item())
-            print("Epoch:{0}\nGenerator Loss:{1}\nDiscriminator Loss:{2}".format(epoch, self.G_training_loss[-1],
-                                                                                 self.D_training_loss[-1]))
+            self.G_losses.append(g_loss.item())
+            self.D_losses.append(d_loss.item())
+            print("Epoch:{0}\nGenerator Loss:{1}\nDiscriminator Loss:{2}".format(epoch, self.G_losses[-1],
+                                                                                 self.D_losses[-1]))
             with torch.no_grad():
                 fake = self.generator(fixed_noise).detach().cpu()
             self.img_list.append(fake)
@@ -159,8 +167,8 @@ class WGAN(object):
             'discriminator_state_dict': self.discriminator.state_dict(),
             'optimizer_generator_state_dict': self.optimG.state_dict(),
             'optimizer_discriminator_state_dict': self.optimD.state_dict(),
-            'generator_loss': self.G_training_loss,
-            'discriminator_loss': self.D_training_loss,
+            'generator_loss': self.G_losses,
+            'discriminator_loss': self.D_losses,
             'clamp': self.clamp,
             'img_list': self.img_list
         }, fp)
@@ -172,14 +180,15 @@ class WGAN(object):
         self.discriminator.load_state_dict(state["discriminator_state_dict"])
         self.optimD.load_state_dict(state['optimizer_discriminator_state_dict'])
         self.optimG.load_state_dict(state['optimizer_generator_state_dict'])
-        self.G_training_loss = state['generator_loss']
-        self.D_training_loss = state['discriminator_loss']
+        self.G_losses = state['generator_loss']
+        self.D_losses = state['discriminator_loss']
         self.clamp = state['clamp']
 
         if 'img_list' in state.keys():
             self.img_list = state['img_list']
         else:
             self.img_list = []
+
 
 
 

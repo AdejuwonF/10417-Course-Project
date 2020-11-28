@@ -19,7 +19,7 @@ import time
 
 seed = 42069
 
-batch_size = 128
+batch_size = 16
 image_size = 32
 # Number of channels in the training images. For color images this is 3
 nc = 1
@@ -136,13 +136,13 @@ class DCGAN(object):
             start = time.time()
             for i, data in enumerate(dataloader, 0):
                 ## Train with all-real batch
-                netD.zero_grad()
+                self.discriminator.zero_grad()
                 # Format batch
                 real_cpu = data[0].to(device)
                 b_size = real_cpu.size(0)
                 label = torch.full((b_size,),   real_label, dtype=torch.float, device=device)
                 # Forward pass real batch through D
-                output = netD(real_cpu).view(-1)
+                output = self.discriminator(real_cpu).view(-1)
                 # Calculate loss on all-real batch
                 errD_real = self.criterion(output, label)
                 # Calculate gradients for D in backward pass
@@ -153,10 +153,10 @@ class DCGAN(object):
                 # Generate batch of latent vectors
                 noise = torch.randn(b_size, nz, 1, 1, device=device)
                 # Generate fake image batch with G
-                fake = netG(noise)
+                fake = self.generator(noise)
                 label.fill_(fake_label)
                 # Classify all fake batch with D
-                output = netD(fake.detach()).view(-1)
+                output = self.discriminator(fake.detach()).view(-1)
                 # Calculate D's loss on the all-fake batch
                 errD_fake = self.criterion(output, label)
                 # Calculate the gradients for this batch
@@ -167,10 +167,10 @@ class DCGAN(object):
                 # Update D
                 self.optimizerD.step()
 
-                netG.zero_grad()
+                self.generator.zero_grad()
                 label.fill_(real_label)  # fake labels are real for generator cost
                 # Since we just updated D, perform another forward pass of all-fake batch through D
-                output = netD(fake).view(-1)
+                output = self.discriminator(fake).view(-1)
                 # Calculate G's loss based on this output
                 errG = self.criterion(output, label)
                 # Calculate gradients for G
@@ -192,7 +192,7 @@ class DCGAN(object):
                 # Check how the generator is doing by saving G's output on fixed_noise
                 if (iters % 500 == 0) or ((epoch == num_epochs - 1) and (i == len(dataloader) - 1)):
                     with torch.no_grad():
-                        fake = netG(fixed_noise).detach().cpu()
+                        fake = self.generator(fixed_noise).detach().cpu()
                     self.img_list.append(fake)
 
                 iters += 1
@@ -200,17 +200,17 @@ class DCGAN(object):
 
 
 
+if __name__ == "__main__":
+    netG = Generator(ngpu).to(device)
+    netG.apply(weights_init)
+    netD = Discriminator(ngpu).to(device)
+    netD.apply(weights_init)
 
-netG = Generator(ngpu).to(device)
-netG.apply(weights_init)
-netD = Discriminator(ngpu).to(device)
-netD.apply(weights_init)
-
-dcgan = DCGAN(netG, netD)
-dcgan.train(5, dataloader)
-print(dcgan.D_losses)
-print(dcgan.G_losses)
-i = 0
-for img in (dcgan.img_list):
-    save_image(img, "MNIST_playground_output/epoch_" + str(i) + ".png")
-    i += 1
+    dcgan = DCGAN(netG, netD)
+    dcgan.train(5, dataloader)
+    print(dcgan.D_losses)
+    print(dcgan.G_losses)
+    i = 0
+    for img in (dcgan.img_list):
+        save_image(img, "MNIST_playground_output/epoch_" + str(i) + ".png")
+        i += 1

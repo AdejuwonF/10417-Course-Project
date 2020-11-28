@@ -26,14 +26,13 @@ import numpy as np
 import os
 import subprocess
 import glob
+import random
 
 def zero_init(m):
     return
 
-
-#TODO ACTUALLY INITIALIZE STATE RANDOMLY
 class CAGenerator(nn.Module):
-    def __init__(self, state_size=20, nc=1, hidden_layer_size=80, nz=100, shape=(28,28)):
+    def __init__(self, state_size=20, nc=1, hidden_layer_size=128, nz=100, shape=(32,32)):
         super(CAGenerator, self).__init__()
         self.H, self.W = shape
         self.nz = nz
@@ -80,8 +79,9 @@ class CAGenerator(nn.Module):
 
         state_grid = self.stochastic_update(state_grid, updates)
 
-        state_grid = torch.cat([(state_grid[:, :self.nc, :, :]).clamp(0,1),# * self.get_living_mask(state_grid),
-                                   state_grid[:, self.nc:, :, :]], dim=1)
+        # Currently clamp values to fall in range, prob better eway to handle this.
+        # state_grid = torch.cat([(state_grid[:, :self.nc, :, :]).clamp(0,1),# * self.get_living_mask(state_grid),
+        #                            state_grid[:, self.nc:, :, :]], dim=1)
 
         post_living_mask = self.get_living_mask(state_grid)
 
@@ -90,7 +90,7 @@ class CAGenerator(nn.Module):
 
         return state_grid
 
-    def forward(self, z, steps=50, return_state=False):
+    def forward(self, z, steps_range=(64, 64), return_state=False):
         """The first 3 channels of the state grid are immutable and correspond to the color channels of the input
         image.  The remaining channels are hidden and used to represent a cells state.  The 3rd channel is currently
         being used as an 'alive' channel, which may be used to threshold which cells are considered alive and thus
@@ -104,6 +104,7 @@ class CAGenerator(nn.Module):
         state_grid[:, 1:, centerH:centerH+1, centerW:centerW+1] = init_hidden
         state_grid[:, 0, centerH, centerW] = .5
 
+        steps = random.randint(steps_range[0], steps_range[1])
         for step in range(steps):
             state_grid = self.ca_step(state_grid)
 
@@ -116,46 +117,46 @@ class CAGenerator(nn.Module):
             return state_grid[:, :self.nc, :, :]
 
 
-dataset = dset.MNIST(root="", train=True, download=True,
-                     transform=transforms.Compose([
-                         transforms.ToTensor()]
-                     ))
-
-img, label = dataset[1042]
-img = img.unsqueeze(0)
-
-criterion = nn.MSELoss()
-model = CAGenerator()
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
-
-in_size = 100
-with torch.no_grad():
-    plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]))
-    plt.show()
-
-for i in range(0):
-    out = model.forward(torch.randn((1, in_size, 1, 1)))
-    loss = criterion(out, img)
-
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    print("Step:{0} Loss:{1}".format(i, loss.item()))
-
-
-
-with torch.no_grad():
-    plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]))
-    plt.show()
-
-with torch.no_grad():
-    state = model.forward(torch.randn((1,in_size,1,1)), 0, True)
-    outs = [None]*51
-    outs[0] = state
-    for i in range(1, 51):
-        state = model.ca_step(state)
-        outs[i] = state
+# dataset = dset.MNIST(root="", train=True, download=True,
+#                     transform=transforms.Compose([transforms.Resize(32), transforms.ToTensor()]))
+#
+# img, label = dataset[254]
+# img = img.unsqueeze(0)
+#
+# #criterion = nn.MSELoss()
+# def criterion(pred, tg):
+#     return torch.mean(torch.sum((tg-pred)**2, dim=[1,2,3])/2)
+# model = CAGenerator()
+# optimizer = optim.Adam(model.parameters(), lr=1e-4)
+#
+# in_size = 100
+# with torch.no_grad():
+#     plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]))
+#     plt.show()
+#
+# for i in range(1000):
+#     out = model.forward(torch.randn((1, in_size, 1, 1)))
+#     loss = criterion(out, img.repeat(1,1,1,1))
+#
+#     optimizer.zero_grad()
+#     loss.backward()
+#     optimizer.step()
+#
+#     print("Step:{0} Loss:{1}".format(i, loss.item()))
+#
+#
+#
+# with torch.no_grad():
+#     plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]), cmap="Greys")
+#     plt.show()
+#
+# with torch.no_grad():
+#     state = model.forward(torch.randn((1,in_size,1,1)), 0, True)
+#     outs = [None]*51
+#     outs[0] = state
+#     for i in range(1, 51):
+#         state = model.ca_step(state)
+#         outs[i] = state
 
 def generate_video(predictions, image, video_name="video"):
     folder = "MNIST_EXAMPLES"
