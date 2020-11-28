@@ -119,6 +119,7 @@ class WGAN(object):
         self.generator.train()
         self.discriminator.train()
         fixed_noise = torch.randn(64, nz, 1, 1, device=device)
+        iters = 0
         for epoch in range(num_epochs):
             start = time.time()
             self.epochs += 1
@@ -145,14 +146,19 @@ class WGAN(object):
                     g_loss.backward()
                     self.optimG.step()
 
+                self.G_losses.append(g_loss.item())
+                self.D_losses.append(d_loss.item())
+
+                if (iters % 500 == 0) or ((epoch == num_epochs - 1) and (i == len(dataloader) - 1)):
+                    print("Iteraton: {0}\tBatch: {1}/{2} of Epoch: {3}\t".format(iters, i, len(dataloader),self.epochs))
+                    with torch.no_grad():
+                        fake = self.generator(fixed_noise).detach().cpu()
+                    self.img_list.append(fake)
+
+                iters += 1
             print(time.time() - start)
-            self.G_losses.append(g_loss.item())
-            self.D_losses.append(d_loss.item())
             print("Epoch:{0}\nGenerator Loss:{1}\nDiscriminator Loss:{2}".format(epoch, self.G_losses[-1],
                                                                                  self.D_losses[-1]))
-            with torch.no_grad():
-                fake = self.generator(fixed_noise).detach().cpu()
-            self.img_list.append(fake)
 
     def save(self, fp=None):
         if fp is None:
@@ -190,5 +196,24 @@ class WGAN(object):
             self.img_list = []
 
 
+if __name__ == "__main__":
+    dataset = dset.MNIST(root="", train=True, download=True,
+                         transform=transforms.Compose([transforms.Resize(image_size), transforms.ToTensor()]))
 
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+                                             shuffle=True, num_workers=0)
+    netG = Generator().to(device)
+    netG.apply(weights_init)
+    netD = Discriminator().to(device)
+    netD.apply(weights_init)
+    wgan = WGAN(netG, netD)
+    for i in range(5):
+        wgan.train(10, dataloader)
+        wgan.save("MNIST_playground_output")
 
+    print(wgan.D_losses)
+    print(wgan.G_losses)
+    # i = 0
+    # for img in (wgan.img_list):
+    #     save_image(img, "MNIST_playground_output/epoch_" + str(i) + ".png")
+    #     i += 1

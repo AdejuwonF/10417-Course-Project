@@ -21,16 +21,17 @@ import os
 import os.path
 
 def inception_score(generator, classifier,  noise_dim, n_classes=10, num_samples=50000):
-    KL = nn.KLDivLoss()
-    posteriors = torch.zeros(num_samples, n_classes)
+    with torch.no_grad():
+        KL = nn.KLDivLoss()
+        posteriors = torch.zeros(num_samples, n_classes)
 
-    #KL(log(prior), posterior) == Dkl(posteropr || prior)
-    for i in range(num_samples):
-        noise = torch.randn(noise_dim)
-        sample = generator.forward(noise)
-        posteriors[i] = sample
+        #KL(log(prior), posterior) == Dkl(posteropr || prior)
+        for i in range(num_samples):
+            noise = torch.randn((1, noise_dim, 1, 1))
+            predictions = classifier.forward(generator.forward(noise))
+            posteriors[i] = predictions
 
-    priors = torch.mean(posteriors, dim=0).repeat((num_samples, 1))
+        priors = torch.mean(posteriors, dim=0).repeat((num_samples, 1))
 
     return torch.exp(KL(torch.log(priors), posteriors)/num_samples).item()
 
