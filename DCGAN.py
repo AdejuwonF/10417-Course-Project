@@ -16,6 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import time
+from datetime import datetime
 
 seed = 42069  # Word?
 
@@ -45,11 +46,11 @@ beta1 = 0.5
 # Number of GPUs available. Use 0 for CPU mode.
 ngpu = 0
 
-dataset = dset.MNIST(root="", train=True, download=True,
-                    transform=transforms.Compose([transforms.Resize(image_size), transforms.ToTensor()]))
-
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
-                                         shuffle=True, num_workers=0)
+# dataset = dset.MNIST(root="", train=True, download=True,
+#                     transform=transforms.Compose([transforms.Resize(image_size), transforms.ToTensor()]))
+#
+# dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+#                                          shuffle=True, num_workers=0)
 
 device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
 
@@ -198,19 +199,59 @@ class DCGAN(object):
                 iters += 1
             print("time for epoch: " + str(time.time() - start))
 
+    def save(self, fp=None):
+        if fp is None:
+            fp = ""
+        else:
+            fp += "/dcgan_epochs{0}".format(datetime.now().strftime("%Y_%m_%d_%H:%M:%S"))
+
+        torch.save({
+            'generator_state_dict': self.generator.state_dict(),
+            'discriminator_state_dict': self.discriminator.state_dict(),
+            'optimizer_generator_state_dict': self.optimizerG.state_dict(),
+            'optimizer_discriminator_state_dict': self.optimizerD.state_dict(),
+            'generator_loss': self.G_losses,
+            'discriminator_loss': self.D_losses,
+            'img_list': self.img_list
+        }, fp)
+
+    def load(self, fp):
+        state = torch.load(fp)
+        self.generator.load_state_dict(state['generator_state_dict'])
+        self.discriminator.load_state_dict(state["discriminator_state_dict"])
+        self.optimizerD.load_state_dict(state['optimizer_discriminator_state_dict'])
+        self.optimizerG.load_state_dict(state['optimizer_generator_state_dict'])
+        self.G_losses = state['generator_loss']
+        self.D_losses = state['discriminator_loss']
+
+        if 'img_list' in state.keys():
+            self.img_list = state['img_list']
+        else:
+            self.img_list = []
+
 
 
 if __name__ == "__main__":
+    dataset = dset.MNIST(root="", train=True, download=True,
+                         transform=transforms.Compose([transforms.Resize(image_size), transforms.ToTensor()]))
+
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+                                             shuffle=True, num_workers=0)
+
     netG = Generator(ngpu).to(device)
     netG.apply(weights_init)
     netD = Discriminator(ngpu).to(device)
     netD.apply(weights_init)
 
     dcgan = DCGAN(netG, netD)
-    dcgan.train(5, dataloader)
+
+    for i in range(5):
+        dcgan.train(10, dataloader)
+        dcgan.save("MNIST_playground_output")
+
     print(dcgan.D_losses)
     print(dcgan.G_losses)
-    i = 0
-    for img in (dcgan.img_list):
-        save_image(img, "MNIST_playground_output/epoch_" + str(i) + ".png")
-        i += 1
+
+    # for img in (dcgan.img_list):
+    #     save_image(img, "MNIST_playground_output/epoch_" + str(i) + ".png")
+    #     i += 1
