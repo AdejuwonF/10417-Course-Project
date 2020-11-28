@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import time
 
-seed = 42069
+seed = 42069  # Word?
 
 batch_size = 16
 image_size = 32
