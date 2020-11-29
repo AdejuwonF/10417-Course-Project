@@ -149,7 +149,7 @@ class WGAN(object):
                 self.G_losses.append(g_loss.item())
                 self.D_losses.append(d_loss.item())
 
-                if (iters % 500 == 0) or ((epoch == num_epochs - 1) and (i == len(dataloader) - 1)):
+                if (iters % 100 == 0) or ((epoch == num_epochs - 1) and (i == len(dataloader) - 1)):
                     print("Iteraton: {0}\tBatch: {1}/{2} of Epoch: {3}\t".format(iters, i, len(dataloader),self.epochs))
                     with torch.no_grad():
                         fake = self.generator(fixed_noise).detach().cpu()
@@ -213,7 +213,7 @@ if __name__ == "__main__":
 
     print(wgan.D_losses)
     print(wgan.G_losses)
-    # i = 0
-    # for img in (wgan.img_list):
-    #     save_image(img, "MNIST_playground_output/epoch_" + str(i) + ".png")
-    #     i += 1
+    i = 0
+    for img in (wgan.img_list):
+        save_image(img, "MNIST_playground_output/iter_" + str(100*i) + ".png")
+        i += 1
