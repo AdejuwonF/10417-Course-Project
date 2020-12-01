@@ -118,46 +118,46 @@ class CAGenerator(nn.Module):
             return state_grid[:, :self.nc, :, :]
 
 
-# dataset = dset.MNIST(root="", train=True, download=True,
-#                     transform=transforms.Compose([transforms.Resize(32), transforms.ToTensor()]))
-#
-# img, label = dataset[254]
-# img = img.unsqueeze(0)
-#
-# # criterion = nn.MSELoss()
-# def criterion(pred, tg):
-#     return torch.mean(torch.sum((tg-pred)**2, dim=[1,2,3])/2)
-# model = CAGenerator()
-# optimizer = optim.Adam(model.parameters(), lr=1e-3)
-#
-# in_size = 100
-# with torch.no_grad():
-#     plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]))
-#     plt.show()
-#
-# for i in range(100):
-#     out = model.forward(torch.randn((1, in_size, 1, 1)))
-#     loss = criterion(out, img.repeat(1,1,1,1))
-#
-#     optimizer.zero_grad()
-#     loss.backward()
-#     optimizer.step()
-#
-#     print("Step:{0} Loss:{1}".format(i, loss.item()))
-#
-#
-#
-# with torch.no_grad():
-#     plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]), cmap="Greys")
-#     plt.show()
-#
-# with torch.no_grad():
-#     state = model.forward(torch.randn((1,in_size,1,1)), [0,0], True)
-#     outs = [None]*51
-#     outs[0] = state
-#     for i in range(1, 51):
-#         state = model.ca_step(state)
-#         outs[i] = state
+dataset = dset.MNIST(root="", train=True, download=True,
+                    transform=transforms.Compose([transforms.Resize(32), transforms.ToTensor()]))
+
+img, label = dataset[258]
+img = img.unsqueeze(0)
+
+# criterion = nn.MSELoss()
+def criterion(pred, tg):
+    return torch.mean(torch.sum((tg-pred)**2, dim=[1,2,3])/2)
+model = CAGenerator()
+optimizer = optim.Adam(model.parameters(), lr=1e-3)
+
+in_size = 100
+with torch.no_grad():
+    plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]))
+    plt.show()
+
+for i in range(500):
+    out = model.forward(torch.randn((1, in_size, 1, 1)))
+    loss = criterion(out, img.repeat(1,1,1,1))
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    print("Step:{0} Loss:{1}".format(i, loss.item()))
+
+
+
+with torch.no_grad():
+    plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]), cmap="Greys")
+    plt.show()
+
+with torch.no_grad():
+    state = model.forward(torch.randn((1,in_size,1,1)), [0,0], True)
+    outs = [None]*65
+    outs[0] = state
+    for i in range(1, 65):
+        state = model.ca_step(state)
+        outs[i] = state
 
 def generate_video(predictions, image, video_name="video"):
     folder = "MNIST_EXAMPLES"
