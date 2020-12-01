@@ -18,7 +18,7 @@ nz = 100
 ngf = 32
 ndf = 32
 nc = 1
-batch_size = 16
+batch_size = 64
 image_size = 32
 workers = 0
 ngpu=0
@@ -107,23 +107,23 @@ class WGAN(object):
     def __init__(self, modelG=Generator(), modelD=Discriminator(), clamp=.01):
         self.generator = modelG
         self.discriminator = modelD
-        self.optimG = optim.RMSprop(modelG.parameters(), .0005)
-        self.optimD = optim.RMSprop(modelD.parameters(), .0005)
+        self.optimG = optim.RMSprop(modelG.parameters(), .00005)
+        self.optimD = optim.RMSprop(modelD.parameters(), .00005)
         self.clamp = clamp
         self.G_losses = []
         self.D_losses = []
         self.img_list = []
         self.epochs = 0
 
-    def train(self, num_epochs, dataloader):
+    def train(self, num_epochs, dataloader, fixed_noise):
         self.generator.train()
         self.discriminator.train()
-        fixed_noise = torch.randn(64, nz, 1, 1, device=device)
         iters = 0
         for epoch in range(num_epochs):
             start = time.time()
             self.epochs += 1
             for i, data in enumerate(dataloader):
+                #its = time.time()
                 real_samples = data[0]
                 self.optimD.zero_grad()
                 fake_samples = self.generator.forward(torch.randn(real_samples.shape[0], nz, 1, 1))
@@ -149,13 +149,14 @@ class WGAN(object):
                 self.G_losses.append(g_loss.item())
                 self.D_losses.append(d_loss.item())
 
-                if (iters % 100 == 0) or ((epoch == num_epochs - 1) and (i == len(dataloader) - 1)):
+                if (iters % 339 == 0 and iters != 0) or ((epoch == num_epochs - 1) and (i == len(dataloader) - 1)):
                     print("Iteraton: {0}\tBatch: {1}/{2} of Epoch: {3}\t".format(iters, i, len(dataloader),self.epochs))
                     with torch.no_grad():
                         fake = self.generator(fixed_noise).detach().cpu()
                     self.img_list.append(fake)
 
                 iters += 1
+                #print(time.time() - its)
             print(time.time() - start)
             print("Epoch:{0}\nGenerator Loss:{1}\nDiscriminator Loss:{2}".format(epoch, self.G_losses[-1],
                                                                                  self.D_losses[-1]))
