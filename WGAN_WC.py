@@ -116,7 +116,7 @@ class WGAN(object):
         self.epochs = 0
         self.iters = 0
 
-    def train(self, num_epochs, dataloader):
+    def train(self, num_epochs, dataloader, fixed_noise):
         self.generator.train()
         self.discriminator.train()
         fixed_noise = torch.randn(64, nz, 1, 1, device=device)
@@ -124,6 +124,7 @@ class WGAN(object):
             start = time.time()
             self.epochs += 1
             for i, data in enumerate(dataloader):
+                #its = time.time()
                 real_samples = data[0]
                 self.optimD.zero_grad()
                 fake_samples = self.generator.forward(torch.randn(real_samples.shape[0], nz, 1, 1))
@@ -154,7 +155,6 @@ class WGAN(object):
                     with torch.no_grad():
                         fake = self.generator(fixed_noise).detach().cpu()
                     self.img_list.append(fake)
-
                 self.iters += 1
             print(time.time() - start)
             print("Epoch:{0}\nGenerator Loss:{1}\nDiscriminator Loss:{2}".format(epoch, self.G_losses[-1],

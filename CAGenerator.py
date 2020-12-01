@@ -27,6 +27,9 @@ import os
 import subprocess
 import glob
 import random
+from WGAN_WC import WGAN
+from torchvision.utils import save_image
+
 
 def zero_init(m):
     return
@@ -39,6 +42,8 @@ class CAGenerator(nn.Module):
         self.state_size = state_size
         self.hidden_layer_size = hidden_layer_size
         self.nc = nc
+        self.losses = []
+        self.img_list = []
 
         # self.init_state = nn.Sequential(
         #     nn.Conv2d(self.nz, 50, 1, stride=1),
@@ -118,46 +123,80 @@ class CAGenerator(nn.Module):
             return state_grid[:, :self.nc, :, :]
 
 
-dataset = dset.MNIST(root="", train=True, download=True,
+# dataset = dset.MNIST(root="", train=True, download=True,
+#                     transform=transforms.Compose([transforms.Resize(32), transforms.ToTensor()]))
+#
+# img, label = dataset[258]
+# img = img.unsqueeze(0)
+#
+# # criterion = nn.MSELoss()
+# def criterion(pred, tg):
+#     return torch.mean(torch.sum((tg-pred)**2, dim=[1,2,3])/2)
+# model = CAGenerator()
+# optimizer = optim.Adam(model.parameters(), lr=1e-3)
+#
+# in_size = 100
+# with torch.no_grad():
+#     plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]))
+#     plt.show()
+#
+# for i in range(500):
+#     out = model.forward(torch.randn((1, in_size, 1, 1)))
+#     loss = criterion(out, img.repeat(1,1,1,1))
+#
+#     optimizer.zero_grad()
+#     loss.backward()
+#     optimizer.step()
+#
+#     print("Step:{0} Loss:{1}".format(i, loss.item()))
+#
+#
+#
+# with torch.no_grad():
+#     plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]), cmap="Greys")
+#     plt.show()
+#
+# with torch.no_grad():
+#     state = model.forward(torch.randn((1,in_size,1,1)), [0,0], True)
+#     outs = [None]*65
+#     outs[0] = state
+#     for i in range(1, 65):
+#         state = model.ca_step(state)
+#         outs[i] = state
+if __name__ == "__main__":
+    print("Starting CAGAN")
+    dataset = dset.MNIST(root="", train=True, download=True,
                     transform=transforms.Compose([transforms.Resize(32), transforms.ToTensor()]))
 
-img, label = dataset[258]
-img = img.unsqueeze(0)
+    five_idx = dataset.targets==7
+
+    dataset.targets = dataset.targets[five_idx]
+    dataset.data = dataset.data[five_idx]
+    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
+
+
+    ngpu = 0
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
+
+    CAG = CAGenerator().to(device)
+    state_dict = torch.load("CAGAN7/pretrained_CA_7")
+    CAG.load_state_dict(state_dict)
+
+    model = WGAN(modelG=CAG)
+    fixed_noise = torch.randn(64, 100, 1, 1, device=device)
+
+    for i in range(10):
+        model.train(1, dataloader, fixed_noise)
+        model.save("CAGAN7")
+
+    for img in (model.img_list):
+        save_image(img, "CAGAN7/iter_" + str(100*i) + ".png")
+        i += 1
 
 # criterion = nn.MSELoss()
 def criterion(pred, tg):
     return torch.mean(torch.sum((tg-pred)**2, dim=[1,2,3])/2)
-model = CAGenerator()
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
-
-in_size = 100
-with torch.no_grad():
-    plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]))
-    plt.show()
-
-for i in range(500):
-    out = model.forward(torch.randn((1, in_size, 1, 1)))
-    loss = criterion(out, img.repeat(1,1,1,1))
-
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    print("Step:{0} Loss:{1}".format(i, loss.item()))
-
-
-
-with torch.no_grad():
-    plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]), cmap="Greys")
-    plt.show()
-
-with torch.no_grad():
-    state = model.forward(torch.randn((1,in_size,1,1)), [0,0], True)
-    outs = [None]*65
-    outs[0] = state
-    for i in range(1, 65):
-        state = model.ca_step(state)
-        outs[i] = state
 
 def generate_video(predictions, image, video_name="video"):
     folder = "MNIST_EXAMPLES"
