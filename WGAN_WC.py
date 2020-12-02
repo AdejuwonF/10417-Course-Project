@@ -115,11 +115,11 @@ class WGAN(object):
         self.img_list = []
         self.epochs = 0
         self.iters = 0
+        self.fixed_noise = torch.randn(64, 100, 1, 1, device=device)
 
-    def train(self, num_epochs, dataloader, fixed_noise):
+    def train(self, num_epochs, dataloader):
         self.generator.train()
         self.discriminator.train()
-        fixed_noise = torch.randn(64, nz, 1, 1, device=device)
         for epoch in range(num_epochs):
             start = time.time()
             self.epochs += 1
@@ -140,7 +140,7 @@ class WGAN(object):
 
                 fake_samples = self.generator.forward(torch.randn(batch_size, nz, 1, 1))
                 g_loss = -torch.mean(self.discriminator.forward(fake_samples))
-                if i % 5 == 0:
+                if i % 5 == 0 and self.iters > 0:
                     # print("Batch:{0} of Epoch:{1}".format(i, epoch))
                     self.optimG.zero_grad()
                     self.optimD.zero_grad()
@@ -153,7 +153,7 @@ class WGAN(object):
                 if (i == len(dataloader) - 1): #(self.iters % 100 == 0):# or ((epoch == num_epochs - 1) and (i == len(dataloader) - 1)):
                     print("Iteraton: {0}\tBatch: {1}/{2} of Epoch: {3}\t".format(self.iters, i, len(dataloader),self.epochs))
                     with torch.no_grad():
-                        fake = self.generator(fixed_noise).detach().cpu()
+                        fake = self.generator(self.fixed_noise).detach().cpu()
                     self.img_list.append(fake)
                 self.iters += 1
             print(time.time() - start)
@@ -177,7 +177,8 @@ class WGAN(object):
             'discriminator_loss': self.D_losses,
             'clamp': self.clamp,
             'img_list': self.img_list,
-            'iters': self.iters
+            'iters': self.iters,
+            'noise': self.fixed_noise
         }, fp)
 
     def load(self, fp):
@@ -199,6 +200,10 @@ class WGAN(object):
             self.iters = state['iters']
         else:
             self.iters = 0
+        if 'noise' in state.keys():
+            self.fixed_noise = state['noise']
+        else:
+            self.fixed_noise = torch.randn(64, 100, 1, 1, device=device)
 
 
 if __name__ == "__main__":
