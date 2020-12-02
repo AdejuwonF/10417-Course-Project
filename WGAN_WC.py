@@ -18,7 +18,7 @@ nz = 100
 ngf = 32
 ndf = 32
 nc = 1
-batch_size = 64
+batch_size = 16
 image_size = 32
 workers = 0
 ngpu=0
@@ -150,7 +150,7 @@ class WGAN(object):
                 self.G_losses.append(g_loss.item())
                 self.D_losses.append(d_loss.item())
 
-                if (self.iters % 100 == 0):# or ((epoch == num_epochs - 1) and (i == len(dataloader) - 1)):
+                if (i == len(dataloader) - 1): #(self.iters % 100 == 0):# or ((epoch == num_epochs - 1) and (i == len(dataloader) - 1)):
                     print("Iteraton: {0}\tBatch: {1}/{2} of Epoch: {3}\t".format(self.iters, i, len(dataloader),self.epochs))
                     with torch.no_grad():
                         fake = self.generator(fixed_noise).detach().cpu()

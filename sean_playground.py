@@ -55,11 +55,11 @@ import pickle as pk
 
 CAG = CAGenerator.CAGenerator()
 model = WGAN_WC.WGAN(modelG=CAG)
-model.load("CAGAN7/gan_wc_5_epochs2020_11_30_09:15:13")
-# i = 0
-# for img in model.img_list:
-#     save_image(img, "CAGAN7/img_" + str(i) + ".png")
-#     i += 1
+model.load("CAGAN7/gan_wc_7_epochs2020_12_02_11:03:47")
+i = 0
+for img in model.img_list:
+    save_image(img, "CAGAN7/img_" + str(i) + ".png")
+    i += 1
 
 print(model.G_losses)
 print(model.D_losses)

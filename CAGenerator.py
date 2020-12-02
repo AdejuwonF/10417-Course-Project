@@ -180,8 +180,8 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
 
     CAG = CAGenerator().to(device)
-    state_dict = torch.load("CAGAN7/pretrained_CA_7")
-    CAG.load_state_dict(state_dict)
+    #state_dict = torch.load("CAGAN7/pretrained_CA_7")
+    #CAG.load_state_dict(state_dict)
 
     model = WGAN(modelG=CAG)
     fixed_noise = torch.randn(64, 100, 1, 1, device=device)
@@ -189,6 +189,8 @@ if __name__ == "__main__":
     for i in range(10):
         model.train(1, dataloader, fixed_noise)
         model.save("CAGAN7")
+
+    i = 0
 
     for img in (model.img_list):
         save_image(img, "CAGAN7/iter_" + str(100*i) + ".png")
