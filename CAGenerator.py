@@ -180,19 +180,19 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
 
     CAG = CAGenerator().to(device)
-    state_dict = torch.load("CAGAN7/pretrained_CA_7")
-    CAG.load_state_dict(state_dict)
 
     model = WGAN(modelG=CAG)
-    fixed_noise = torch.randn(64, 100, 1, 1, device=device)
+    model.load("CAGAN7/gan_wc_10_epochs2020_12_02_09:43:05")
 
-    for i in range(10):
-        model.train(1, dataloader, fixed_noise)
-        model.save("CAGAN7")
+    # for i in range(0):
+    #     model.train(1, dataloader)
+    #     model.save("CAGAN7")
 
-    for img in (model.img_list):
-        save_image(img, "CAGAN7/iter_" + str(100*i) + ".png")
-        i += 1
+    # model.load("CAGAN7/gan_wc_19_epochs2020_12_03_08:24:00")
+    # i=0
+    # for img in (model.img_list):
+    #     save_image(img, "CAGAN7/iter_" + str(100*i) + ".png")
+    #     i += 1
 
 # criterion = nn.MSELoss()
 def criterion(pred, tg):
