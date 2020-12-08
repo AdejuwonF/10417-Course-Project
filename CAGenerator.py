@@ -32,6 +32,10 @@ from WGAN_WC import Discriminator
 from WGAN_GP import WGAN_GP
 from torchvision.utils import save_image
 
+ngpu = 1
+
+device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
+
 
 def zero_init(m):
     return
@@ -104,7 +108,7 @@ class CAGenerator(nn.Module):
         are allowed to have cell states.  The 4th channel will represent the probability that a cell believes itself
         to be part of a person mask."""
         N = z.shape[0]
-        state_grid = torch.zeros((N, self.state_size, self.H, self.W))
+        state_grid = torch.zeros((N, self.state_size, self.H, self.W), device=device)
         centerH = self.H//2
         centerW = self.W//2
         #init_hidden = self.init_state.forward(z)
@@ -163,11 +167,9 @@ if __name__ == "__main__":
 
     img, label = dataset[258]
     img = img.unsqueeze(0)
+    img = img.to(device)
 
     in_size = 100
-    with torch.no_grad():
-        plt.imshow(CAG.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1, 2, 0]))
-        plt.show()
 
     for i in range(300):
         out = CAG.forward(torch.randn((1, in_size, 1, 1)))
