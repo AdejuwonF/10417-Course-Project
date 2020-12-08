@@ -147,7 +147,7 @@ class WGAN_GP(object):
 
                 fake_samples = self.generator.forward(torch.randn(batch_size, nz, 1, 1))
                 g_loss = -torch.mean(self.discriminator.forward(fake_samples))
-                if i % 5 == 0:
+                if i % 5 == 0 and self.iters > 300:
                     # print("Batch:{0} of Epoch:{1}".format(i, epoch))
                     self.optimG.zero_grad()
                     self.optimD.zero_grad()
