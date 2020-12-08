@@ -114,8 +114,11 @@ class WGAN_GP(object):
 
         self.G_training_loss = []
         self.D_training_loss = []
+        self.img_list = []
         self.epochs = 0
         self.lamb = lamb
+        self.iters = 0
+        self.fixed_noise = torch.randn(64, 100, 1, 1, device=device)
 
     def train(self, num_epochs, dataloader):
         self.generator.train()
@@ -145,16 +148,23 @@ class WGAN_GP(object):
                 fake_samples = self.generator.forward(torch.randn(batch_size, nz, 1, 1))
                 g_loss = -torch.mean(self.discriminator.forward(fake_samples))
                 if i % 5 == 0:
-                    if i % 100 == 0:
-                        print("Batch:{0} of Epoch:{1}".format(i, epoch))
+                    # print("Batch:{0} of Epoch:{1}".format(i, epoch))
                     self.optimG.zero_grad()
                     self.optimD.zero_grad()
                     g_loss.backward()
                     self.optimG.step()
 
+                self.G_training_loss.append(g_loss.item())
+                self.D_training_loss.append(d_loss.item())
+
+                if (self.iters % 100 == 0): #(self.iters % 100 == 0):# or ((epoch == num_epochs - 1) and (i == len(dataloader) - 1)):
+                    print("Iteraton: {0}\tBatch: {1}/{2} of Epoch: {3}\t".format(self.iters, i, len(dataloader),self.epochs))
+                    with torch.no_grad():
+                        fake = self.generator(self.fixed_noise).detach().cpu()
+                    self.img_list.append(fake)
+                self.iters += 1
+
             print(time.time() - start)
-            self.G_training_loss.append(g_loss.item())
-            self.D_training_loss.append(d_loss.item())
             print("Epoch:{0}\nGenerator Loss:{1}\nDiscriminator Loss:{2}".format(epoch, self.G_training_loss[-1],
                                                                                  self.D_training_loss[-1]))
 
@@ -173,7 +183,10 @@ class WGAN_GP(object):
             'optimizer_discriminator_state_dict': self.optimD.state_dict(),
             'generator_loss': self.G_training_loss,
             'discriminator_loss': self.D_training_loss,
-            'GP weight': self.lamb
+            'GP weight': self.lamb,
+            'img_list': self.img_list,
+            'iters': self.iters,
+            'noise': self.fixed_noise
         }, fp)
 
     def load(self, fp):
@@ -186,6 +199,19 @@ class WGAN_GP(object):
         self.G_training_loss = state['generator_loss']
         self.D_training_loss = state['discriminator_loss']
         self.lamb = state['GP weight']
+
+        if 'img_list' in state.keys():
+            self.img_list = state['img_list']
+        else:
+            self.img_list = []
+        if 'iters' in state.keys():
+            self.iters = state['iters']
+        else:
+            self.iters = 0
+        if 'noise' in state.keys():
+            self.fixed_noise = state['noise']
+        else:
+            self.fixed_noise = torch.randn(64, 100, 1, 1, device=device)
 
 if __name__ == "__main__":
     dataset = dset.MNIST(root="", train=True, download=True,
