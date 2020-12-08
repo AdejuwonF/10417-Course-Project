@@ -72,7 +72,7 @@ class CAGenerator(nn.Module):
         updates = mask * updates
         return state_grid + updates
 
-    def get_living_mask(self, state_grid, threshold=.1, alpha_channel=0):
+    def get_living_mask(self, state_grid, threshold=.01, alpha_channel=0):
         mask = self.max_pool.forward(state_grid[:, alpha_channel:alpha_channel+1, :, :]) > threshold
         return mask
 
@@ -182,17 +182,17 @@ if __name__ == "__main__":
     CAG = CAGenerator().to(device)
 
     model = WGAN(modelG=CAG)
-    model.load("CAGAN7/gan_wc_10_epochs2020_12_02_09:43:05")
+    #model.load("CAGAN7/gan_wc_10_epochs2020_12_02_09:43:05")
 
-    # for i in range(0):
-    #     model.train(1, dataloader)
-    #     model.save("CAGAN7")
+    for i in range(10):
+        model.train(1, dataloader)
+        model.save("CAGAN7")
 
-    # model.load("CAGAN7/gan_wc_19_epochs2020_12_03_08:24:00")
-    # i=0
-    # for img in (model.img_list):
-    #     save_image(img, "CAGAN7/iter_" + str(100*i) + ".png")
-    #     i += 1
+    #model.load("CAGAN7/gan_wc_19_epochs2020_12_03_08:24:00")
+    i=0
+    for img in (model.img_list):
+        save_image(img, "CAGAN7/iter_" + str(100*i) + ".png")
+        i += 1
 
 # criterion = nn.MSELoss()
 def criterion(pred, tg):
