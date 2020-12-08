@@ -28,6 +28,7 @@ import subprocess
 import glob
 import random
 from WGAN_WC import WGAN
+from WGAN_GP import WGAN_GP
 from torchvision.utils import save_image
 
 
@@ -108,7 +109,7 @@ class CAGenerator(nn.Module):
         #init_hidden = self.init_state.forward(z)
         init_hidden = z[:, :self.state_size-1, :, :]
         state_grid[:, 1:, centerH:centerH+1, centerW:centerW+1] = init_hidden
-        state_grid[:, 0, centerH, centerW] = .5
+        state_grid[:, 0, centerH, centerW] = 1
 
         steps = random.randint(steps_range[0], steps_range[1])
         for step in range(steps):
@@ -125,30 +126,11 @@ class CAGenerator(nn.Module):
 
 # dataset = dset.MNIST(root="", train=True, download=True,
 #                     transform=transforms.Compose([transforms.Resize(32), transforms.ToTensor()]))
-#
-# img, label = dataset[258]
-# img = img.unsqueeze(0)
-#
-# # criterion = nn.MSELoss()
-# def criterion(pred, tg):
-#     return torch.mean(torch.sum((tg-pred)**2, dim=[1,2,3])/2)
-# model = CAGenerator()
-# optimizer = optim.Adam(model.parameters(), lr=1e-3)
-#
-# in_size = 100
-# with torch.no_grad():
-#     plt.imshow(model.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1,2,0]))
-#     plt.show()
-#
-# for i in range(500):
-#     out = model.forward(torch.randn((1, in_size, 1, 1)))
-#     loss = criterion(out, img.repeat(1,1,1,1))
-#
-#     optimizer.zero_grad()
-#     loss.backward()
-#     optimizer.step()
-#
-#     print("Step:{0} Loss:{1}".format(i, loss.item()))
+
+# criterion = nn.MSELoss()
+def criterion(pred, tg):
+    return torch.mean(torch.sum((tg-pred)**2, dim=[1,2,3])/2)
+
 #
 #
 #
@@ -170,6 +152,27 @@ if __name__ == "__main__":
 
     five_idx = dataset.targets==7
 
+    CAG = CAGenerator()
+    optimizer = optim.Adam(CAG.parameters(), lr=1e-3)
+
+    img, label = dataset[258]
+    img = img.unsqueeze(0)
+
+    in_size = 100
+    with torch.no_grad():
+        plt.imshow(CAG.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1, 2, 0]))
+        plt.show()
+
+    for i in range(300):
+        out = CAG.forward(torch.randn((1, in_size, 1, 1)))
+        loss = criterion(out, img.repeat(1, 1, 1, 1))
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        print("Step:{0} Loss:{1}".format(i, loss.item()))
+
     dataset.targets = dataset.targets[five_idx]
     dataset.data = dataset.data[five_idx]
     dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
@@ -179,19 +182,20 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
 
-    CAG = CAGenerator().to(device)
+    # state_dict = torch.load("CAGAN7/pretrained_CA_7")
+    # CAG.load_state_dict(state_dict)
 
     model = WGAN(modelG=CAG)
-    model.load("CAGAN7/gan_wc_10_epochs2020_12_02_09:43:05")
+    # model.load("CAGAN7/gan_wc_20_epochs2020_12_03_09:27:26")
+    os.mkdir("CAGAN7_CHECKPOINTS")
+    for i in range(20):
+        model.train(1, dataloader)
+        model.save("CAGAN7_CHECKPOINTS")
 
-    # for i in range(0):
-    #     model.train(1, dataloader)
-    #     model.save("CAGAN7")
-
-    # model.load("CAGAN7/gan_wc_19_epochs2020_12_03_08:24:00")
+    # model.load("CAGAN7_GP/gan_gp_10_epochs2020_12_07_09:45:22")
     # i=0
     # for img in (model.img_list):
-    #     save_image(img, "CAGAN7/iter_" + str(100*i) + ".png")
+    #     save_image(img, "CAGAN7_GP/iter_" + str(100*i) + ".png")
     #     i += 1
 
 # criterion = nn.MSELoss()
