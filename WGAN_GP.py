@@ -14,7 +14,6 @@ from torch import optim
 from datetime import datetime
 from torch.utils.data import DataLoader
 from torchvision.utils import save_image
-from CAGenerator import CAGenerator
 
 nz = 100
 ngf = 32
@@ -23,7 +22,7 @@ nc = 1
 batch_size = 16
 image_size = 32
 workers = 0
-ngpu=0
+ngpu=1
 device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
 
 def weights_init(m):
@@ -129,14 +128,14 @@ class WGAN_GP(object):
             for i, data in enumerate(dataloader):
                 real_samples = data[0]
                 self.optimD.zero_grad()
-                fake_samples = self.generator.forward(torch.randn(real_samples.shape[0], nz, 1, 1))
+                fake_samples = self.generator.forward(torch.randn(real_samples.shape[0], nz, 1, 1, device=device))
                 d_loss = torch.mean(self.discriminator.forward(fake_samples)) - torch.mean(self.discriminator.forward(real_samples))
 
                 # gradient Penalty
-                epsilon = torch.rand(real_samples.shape[0], 1, 1, 1)
+                epsilon = torch.rand(real_samples.shape[0], 1, 1, 1, device=device)
                 x_hat = (epsilon*real_samples + (1-epsilon)*fake_samples)
                 out = self.discriminator.forward(x_hat)
-                x_grad = torch.autograd.grad(outputs=out, inputs=x_hat, grad_outputs=torch.ones(real_samples.shape[0],1),
+                x_grad = torch.autograd.grad(outputs=out, inputs=x_hat, grad_outputs=torch.ones(real_samples.shape[0],1, device=device),
                                              create_graph=True, retain_graph=True, only_inputs=True)[0]
                 gp = self.lamb*torch.mean(torch.pow((torch.sqrt(torch.sum(torch.pow(x_grad, 2), dim=[1,2,3])) - 1),2))
                 d_loss += gp
@@ -145,7 +144,7 @@ class WGAN_GP(object):
                 d_loss.backward()
                 self.optimD.step()
 
-                fake_samples = self.generator.forward(torch.randn(batch_size, nz, 1, 1))
+                fake_samples = self.generator.forward(torch.randn(batch_size, nz, 1, 1, device=device))
                 g_loss = -torch.mean(self.discriminator.forward(fake_samples))
                 if i % 5 == 0 and self.iters > 300:
                     # print("Batch:{0} of Epoch:{1}".format(i, epoch))
@@ -226,23 +225,23 @@ if __name__ == "__main__":
     #                                         shuffle=True, num_workers=0)
     # netG = Generator().to(device)
     # netG.apply(weights_init)
-    ngpu = 0
-
-    device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
-
-    CAG = CAGenerator().to(device)
-    netD = Discriminator().to(device)
-    netD.apply(weights_init)
-    wgan = WGAN_GP(CAG, netD)
-
-    print("Begin training")
-
-    for i in range(10):
-        wgan.train(1, dataloader)
-        wgan.save("GP")
-
-    print(wgan.D_training_loss)
-    print(wgan.G_training_loss)
+    # ngpu = 0
+    #
+    # device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
+    #
+    # CAG = CAGenerator().to(device)
+    # netD = Discriminator().to(device)
+    # netD.apply(weights_init)
+    # wgan = WGAN_GP(CAG, netD)
+    #
+    # print("Begin training")
+    #
+    # for i in range(10):
+    #     wgan.train(1, dataloader)
+    #     wgan.save("GP")
+    #
+    # print(wgan.D_training_loss)
+    # print(wgan.G_training_loss)
     # i = 0
     # for img in (wgan.img_list):
     #     save_image(img, "WGAN_WC_01/iter_" + str(100*i) + ".png")

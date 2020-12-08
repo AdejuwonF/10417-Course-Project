@@ -182,7 +182,7 @@ class WGAN(object):
         }, fp)
 
     def load(self, fp):
-        state = torch.load(fp)
+        state = torch.load(fp, map_location=torch.device('cpu'))
         self.epochs = state['epochs_trained']
         self.generator.load_state_dict(state['generator_state_dict'])
         self.discriminator.load_state_dict(state["discriminator_state_dict"])

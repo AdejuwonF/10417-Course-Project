@@ -41,7 +41,7 @@ def zero_init(m):
     return
 
 class CAGenerator(nn.Module):
-    def __init__(self, state_size=40, nc=1, hidden_layer_size=256, nz=100, shape=(32,32)):
+    def __init__(self, state_size=80, nc=1, hidden_layer_size=512, nz=100, shape=(32,32)):
         super(CAGenerator, self).__init__()
         self.H, self.W = shape
         self.nz = nz

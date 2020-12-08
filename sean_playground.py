@@ -55,10 +55,12 @@ import pickle as pk
 #     i += 1
 CAG = CAGenerator.CAGenerator()
 model = WGAN_WC.WGAN(CAG)
-model.load("CAGAN7/gan_wc_2_epochs2020_12_06_07:02:11")
-noise = torch.randn(64, 100, 1, 1)
-fake = model.generator(noise).detach()
-save_image(fake, "CAGAN7/final.png")
+model.load("gan_wc_20_epochs2020_12_08_18:22:29")
+
+save_image(model.img_list[-1], "512_20.png")
+# print(sum(p.numel() for p in CAG.parameters() if p.requires_grad))
+# print(torch.max(model.img_list[-1]))
+# print(torch.min(model.img_list[-1]))
 
 # CAG = CAGenerator.CAGenerator()
 # model = WGAN_WC.WGAN(modelG=CAG)
