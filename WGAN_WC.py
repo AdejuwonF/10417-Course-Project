@@ -21,7 +21,7 @@ nc = 1
 batch_size = 16
 image_size = 32
 workers = 0
-ngpu=0
+ngpu=1
 device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
 
 # dataset = dset.MNIST(root="", train=True, download=True,
@@ -125,9 +125,9 @@ class WGAN(object):
             self.epochs += 1
             for i, data in enumerate(dataloader):
                 #its = time.time()
-                real_samples = data[0]
+                real_samples = data[0].to(device)
                 self.optimD.zero_grad()
-                fake_samples = self.generator.forward(torch.randn(real_samples.shape[0], nz, 1, 1))
+                fake_samples = self.generator.forward(torch.randn(real_samples.shape[0], nz, 1, 1, device=device))
                 fake = self.discriminator.forward(fake_samples)
                 real = self.discriminator.forward(real_samples)
                 d_loss = torch.mean(fake) - torch.mean(real)
@@ -138,7 +138,7 @@ class WGAN(object):
                 for p in self.discriminator.parameters():
                     p.data.clamp_(-self.clamp, self.clamp)
 
-                fake_samples = self.generator.forward(torch.randn(batch_size, nz, 1, 1))
+                fake_samples = self.generator.forward(torch.randn(batch_size, nz, 1, 1, device=device))
                 g_loss = -torch.mean(self.discriminator.forward(fake_samples))
                 if i % 5 == 0 and self.iters > 100:
                     # print("Batch:{0} of Epoch:{1}".format(i, epoch))

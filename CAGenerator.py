@@ -28,6 +28,7 @@ import subprocess
 import glob
 import random
 from WGAN_WC import WGAN
+from WGAN_WC import Discriminator
 from WGAN_GP import WGAN_GP
 from torchvision.utils import save_image
 
@@ -150,9 +151,14 @@ if __name__ == "__main__":
     dataset = dset.MNIST(root="", train=True, download=True,
                     transform=transforms.Compose([transforms.Resize(32), transforms.ToTensor()]))
 
+    ngpu = 1
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
+
     five_idx = dataset.targets==7
 
-    CAG = CAGenerator()
+    CAG = CAGenerator().to(device)
+    critic = Discriminator().to(device)
     optimizer = optim.Adam(CAG.parameters(), lr=1e-3)
 
     img, label = dataset[258]
@@ -178,14 +184,10 @@ if __name__ == "__main__":
     dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
 
 
-    ngpu = 0
-
-    device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
-
     # state_dict = torch.load("CAGAN7/pretrained_CA_7")
     # CAG.load_state_dict(state_dict)
 
-    model = WGAN(modelG=CAG)
+    model = WGAN(modelG=CAG, modelD=critic)
     # model.load("CAGAN7/gan_wc_20_epochs2020_12_03_09:27:26")
     os.mkdir("CAGAN7_CHECKPOINTS")
     for i in range(20):
