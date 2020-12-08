@@ -12,7 +12,9 @@ import util
 import time
 from torch import optim
 from datetime import datetime
+from torch.utils.data import DataLoader
 from torchvision.utils import save_image
+from CAGenerator import CAGenerator
 
 nz = 100
 ngf = 32
@@ -214,14 +216,26 @@ class WGAN_GP(object):
 if __name__ == "__main__":
     dataset = dset.MNIST(root="", train=True, download=True,
                          transform=transforms.Compose([transforms.Resize(image_size), transforms.ToTensor()]))
+    five_idx = dataset.targets == 7
 
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
-                                             shuffle=True, num_workers=0)
-    netG = Generator().to(device)
-    netG.apply(weights_init)
+    dataset.targets = dataset.targets[five_idx]
+    dataset.data = dataset.data[five_idx]
+    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
+
+    #dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+    #                                         shuffle=True, num_workers=0)
+    # netG = Generator().to(device)
+    # netG.apply(weights_init)
+    ngpu = 0
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
+
+    CAG = CAGenerator().to(device)
     netD = Discriminator().to(device)
     netD.apply(weights_init)
-    wgan = WGAN_GP(netG, netD)
+    wgan = WGAN_GP(CAG, netD)
+
+    print("Begin training")
 
     for i in range(10):
         wgan.train(1, dataloader)

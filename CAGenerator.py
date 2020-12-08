@@ -73,7 +73,7 @@ class CAGenerator(nn.Module):
         updates = mask * updates
         return state_grid + updates
 
-    def get_living_mask(self, state_grid, threshold=.1, alpha_channel=0):
+    def get_living_mask(self, state_grid, threshold=.01, alpha_channel=0):
         mask = self.max_pool.forward(state_grid[:, alpha_channel:alpha_channel+1, :, :]) > threshold
         return mask
 

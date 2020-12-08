@@ -17,6 +17,7 @@ from torchvision.utils import save_image
 import os
 import subprocess
 import glob
+import WGAN_GP
 
 
 from util import CenterCropTensor, TransformAnn, transformCoCoPairs, pixel_accuracy, intersection_over_union
@@ -52,17 +53,23 @@ import pickle as pk
 #     if i % 38 == 0 or i == 379:
 #         save_image(img, "MNIST_playground_output/epoch_" + str(i) + ".png")
 #     i += 1
-
 CAG = CAGenerator.CAGenerator()
-model = WGAN_WC.WGAN(modelG=CAG)
-model.load("CAGAN7/gan_wc_7_epochs2020_12_02_11:03:47")
-i = 0
-for img in model.img_list:
-    save_image(img, "CAGAN7/img_" + str(i) + ".png")
-    i += 1
+model = WGAN_WC.WGAN(CAG)
+model.load("CAGAN7/gan_wc_2_epochs2020_12_06_07:02:11")
+noise = torch.randn(64, 100, 1, 1)
+fake = model.generator(noise).detach()
+save_image(fake, "CAGAN7/final.png")
 
-print(model.G_losses)
-print(model.D_losses)
+# CAG = CAGenerator.CAGenerator()
+# model = WGAN_WC.WGAN(modelG=CAG)
+# model.load("CAGAN7/gan_wc_7_epochs2020_12_02_11:03:47")
+# i = 0
+# for img in model.img_list:
+#     save_image(img, "CAGAN7/img_" + str(i) + ".png")
+#     i += 1
+#
+# print(model.G_losses)
+# print(model.D_losses)
 
 def generate_video(predictions, image, video_name="video"):
     folder = "video"
