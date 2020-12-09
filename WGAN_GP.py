@@ -126,7 +126,7 @@ class WGAN_GP(object):
             start = time.time()
             self.epochs += 1
             for i, data in enumerate(dataloader):
-                real_samples = data[0]
+                real_samples = data[0].to(device)
                 self.optimD.zero_grad()
                 fake_samples = self.generator.forward(torch.randn(real_samples.shape[0], nz, 1, 1, device=device))
                 d_loss = torch.mean(self.discriminator.forward(fake_samples)) - torch.mean(self.discriminator.forward(real_samples))
