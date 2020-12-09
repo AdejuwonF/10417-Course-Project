@@ -28,15 +28,20 @@ import subprocess
 import glob
 import random
 from WGAN_WC import WGAN
+from WGAN_WC import Discriminator
 from WGAN_GP import WGAN_GP
 from torchvision.utils import save_image
+
+ngpu = 1
+
+device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
 
 
 def zero_init(m):
     return
 
 class CAGenerator(nn.Module):
-    def __init__(self, state_size=40, nc=1, hidden_layer_size=256, nz=100, shape=(32,32)):
+    def __init__(self, state_size=80, nc=1, hidden_layer_size=512, nz=100, shape=(32,32)):
         super(CAGenerator, self).__init__()
         self.H, self.W = shape
         self.nz = nz
@@ -103,7 +108,7 @@ class CAGenerator(nn.Module):
         are allowed to have cell states.  The 4th channel will represent the probability that a cell believes itself
         to be part of a person mask."""
         N = z.shape[0]
-        state_grid = torch.zeros((N, self.state_size, self.H, self.W))
+        state_grid = torch.zeros((N, self.state_size, self.H, self.W), device=device)
         centerH = self.H//2
         centerW = self.W//2
         #init_hidden = self.init_state.forward(z)
@@ -150,18 +155,21 @@ if __name__ == "__main__":
     dataset = dset.MNIST(root="", train=True, download=True,
                     transform=transforms.Compose([transforms.Resize(32), transforms.ToTensor()]))
 
+    ngpu = 1
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
+
     five_idx = dataset.targets==7
 
-    CAG = CAGenerator()
+    CAG = CAGenerator().to(device)
+    critic = Discriminator().to(device)
     optimizer = optim.Adam(CAG.parameters(), lr=1e-3)
 
     img, label = dataset[258]
     img = img.unsqueeze(0)
+    img = img.to(device)
 
     in_size = 100
-    with torch.no_grad():
-        plt.imshow(CAG.forward(torch.randn((1, in_size, 1, 1))).squeeze(0).permute([1, 2, 0]))
-        plt.show()
 
     for i in range(300):
         out = CAG.forward(torch.randn((1, in_size, 1, 1)))
@@ -178,14 +186,10 @@ if __name__ == "__main__":
     dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
 
 
-    ngpu = 0
-
-    device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
-
     # state_dict = torch.load("CAGAN7/pretrained_CA_7")
     # CAG.load_state_dict(state_dict)
 
-    model = WGAN(modelG=CAG)
+    model = WGAN(modelG=CAG, modelD=critic)
     # model.load("CAGAN7/gan_wc_20_epochs2020_12_03_09:27:26")
     os.mkdir("CAGAN7_CHECKPOINTS")
     for i in range(20):

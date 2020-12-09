@@ -12,6 +12,7 @@ import util
 import time
 from torch import optim
 from datetime import datetime
+from torch.utils.data import DataLoader
 from torchvision.utils import save_image
 
 nz = 100
@@ -21,7 +22,7 @@ nc = 1
 batch_size = 16
 image_size = 32
 workers = 0
-ngpu=0
+ngpu=1
 device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
 
 # dataset = dset.MNIST(root="", train=True, download=True,
@@ -125,9 +126,9 @@ class WGAN(object):
             self.epochs += 1
             for i, data in enumerate(dataloader):
                 #its = time.time()
-                real_samples = data[0]
+                real_samples = data[0].to(device)
                 self.optimD.zero_grad()
-                fake_samples = self.generator.forward(torch.randn(real_samples.shape[0], nz, 1, 1))
+                fake_samples = self.generator.forward(torch.randn(real_samples.shape[0], nz, 1, 1, device=device))
                 fake = self.discriminator.forward(fake_samples)
                 real = self.discriminator.forward(real_samples)
                 d_loss = torch.mean(fake) - torch.mean(real)
@@ -138,7 +139,7 @@ class WGAN(object):
                 for p in self.discriminator.parameters():
                     p.data.clamp_(-self.clamp, self.clamp)
 
-                fake_samples = self.generator.forward(torch.randn(batch_size, nz, 1, 1))
+                fake_samples = self.generator.forward(torch.randn(batch_size, nz, 1, 1, device=device))
                 g_loss = -torch.mean(self.discriminator.forward(fake_samples))
                 if i % 5 == 0 and self.iters > 100:
                     # print("Batch:{0} of Epoch:{1}".format(i, epoch))
@@ -182,7 +183,7 @@ class WGAN(object):
         }, fp)
 
     def load(self, fp):
-        state = torch.load(fp)
+        state = torch.load(fp, map_location=torch.device('cpu'))
         self.epochs = state['epochs_trained']
         self.generator.load_state_dict(state['generator_state_dict'])
         self.discriminator.load_state_dict(state["discriminator_state_dict"])
@@ -210,7 +211,7 @@ if __name__ == "__main__":
     dataset = dset.MNIST(root="", train=True, download=True,
                          transform=transforms.Compose([transforms.Resize(image_size), transforms.ToTensor()]))
 
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+    dataloader = DataLoader(dataset, batch_size=batch_size,
                                              shuffle=True, num_workers=0)
     netG = Generator().to(device)
     netG.apply(weights_init)
@@ -221,10 +222,3 @@ if __name__ == "__main__":
     for i in range(10):
         wgan.train(10, dataloader)
         wgan.save("WGAN_WC_01")
-
-    print(wgan.D_losses)
-    print(wgan.G_losses)
-    i = 0
-    for img in (wgan.img_list):
-        save_image(img, "WGAN_WC_01/iter_" + str(100*i) + ".png")
-        i += 1
