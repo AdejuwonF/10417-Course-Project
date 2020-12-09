@@ -189,7 +189,7 @@ class WGAN_GP(object):
         }, fp)
 
     def load(self, fp):
-        state = torch.load(fp)
+        state = torch.load(fp, map_location=torch.device('cpu'))
         self.epochs = state['epochs_trained']
         self.generator.load_state_dict(state['generator_state_dict'])
         self.discriminator.load_state_dict(state["discriminator_state_dict"])
@@ -215,34 +215,21 @@ class WGAN_GP(object):
 if __name__ == "__main__":
     dataset = dset.MNIST(root="", train=True, download=True,
                          transform=transforms.Compose([transforms.Resize(image_size), transforms.ToTensor()]))
-    five_idx = dataset.targets == 7
 
-    dataset.targets = dataset.targets[five_idx]
-    dataset.data = dataset.data[five_idx]
     dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
 
-    #dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
-    #                                         shuffle=True, num_workers=0)
-    # netG = Generator().to(device)
-    # netG.apply(weights_init)
-    # ngpu = 0
-    #
-    # device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
-    #
-    # CAG = CAGenerator().to(device)
-    # netD = Discriminator().to(device)
-    # netD.apply(weights_init)
-    # wgan = WGAN_GP(CAG, netD)
-    #
-    # print("Begin training")
-    #
-    # for i in range(10):
-    #     wgan.train(1, dataloader)
-    #     wgan.save("GP")
-    #
-    # print(wgan.D_training_loss)
-    # print(wgan.G_training_loss)
-    # i = 0
-    # for img in (wgan.img_list):
-    #     save_image(img, "WGAN_WC_01/iter_" + str(100*i) + ".png")
-    #     i += 1
+    netG = Generator().to(device)
+    netG.apply(weights_init)
+    ngpu = 1
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
+
+    netD = Discriminator().to(device)
+    netD.apply(weights_init)
+    wgan = WGAN_GP(netG, netD)
+
+    print("Begin training")
+
+    for i in range(10):
+        wgan.train(1, dataloader)
+        wgan.save("GP")

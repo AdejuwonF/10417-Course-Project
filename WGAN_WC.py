@@ -12,6 +12,7 @@ import util
 import time
 from torch import optim
 from datetime import datetime
+from torch.utils.data import DataLoader
 from torchvision.utils import save_image
 
 nz = 100
@@ -210,7 +211,7 @@ if __name__ == "__main__":
     dataset = dset.MNIST(root="", train=True, download=True,
                          transform=transforms.Compose([transforms.Resize(image_size), transforms.ToTensor()]))
 
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+    dataloader = DataLoader(dataset, batch_size=batch_size,
                                              shuffle=True, num_workers=0)
     netG = Generator().to(device)
     netG.apply(weights_init)
@@ -221,10 +222,3 @@ if __name__ == "__main__":
     for i in range(10):
         wgan.train(10, dataloader)
         wgan.save("WGAN_WC_01")
-
-    print(wgan.D_losses)
-    print(wgan.G_losses)
-    i = 0
-    for img in (wgan.img_list):
-        save_image(img, "WGAN_WC_01/iter_" + str(100*i) + ".png")
-        i += 1
