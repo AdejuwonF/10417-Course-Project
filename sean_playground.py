@@ -54,14 +54,16 @@ import pickle as pk
 #         save_image(img, "MNIST_playground_output/epoch_" + str(i) + ".png")
 #     i += 1
 
-# CAG = CAGenerator.CAGenerator()
-# model = WGAN_WC.WGAN(CAG)
-# model.load("gan_wc_26_epochs2020_12_09_09:23:05")
+#CAG = CAGenerator.CAGenerator()
+#model = WGAN_WC.WGAN(CAG)
+model = WGAN_WC.WGAN()
+model.load("gan_wc_100_epochs2020_12_09_21:34:50")
+save_image(model.img_list[int(0.5 * len(model.img_list))], "wc_base_50.png")
 #
 # # model = WGAN_GP.WGAN_GP(CAG)
 # # model.load("gan_gp_20_epochs2020_12_08_19:43:43")
 #
-# save_image(model.img_list[-1], "god_26.png")
+#
 # print(sum(p.numel() for p in CAG.parameters() if p.requires_grad))
 # print(torch.max(model.img_list[-1]))
 # print(torch.min(model.img_list[-1]))
@@ -103,8 +105,13 @@ def generate_video(predictions, image, video_name="video"):
 #         print(i, torch.sum(state[:, 0:1, :, :].squeeze(0)))
 #     #generate_video(outs, None)
 
-CAG = CAGenerator.CAGenerator()
-model = WGAN_WC.WGAN(CAG)
-model.load("gan_wc_34_epochs2020_12_09_13:21:02")
+# CAG = CAGenerator.CAGenerator()
+# model = WGAN_WC.WGAN(CAG)
+# model.load("gan_wc_34_epochs2020_12_09_13:21:02")
+#
+# generate_video(model.img_list, None)
 
-generate_video(model.img_list, None)
+# model = DCGAN.DCGAN()
+# model.load("MNIST_playground_output/dcgan_epochs2020_11_28_06:33:53")
+# print(len(model.img_list))
+# save_image(model.img_list[-1], "dc_base.png")
