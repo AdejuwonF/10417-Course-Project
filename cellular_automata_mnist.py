@@ -152,7 +152,7 @@ net.load_state_dict(torch.load("CAMNIST.pk"))
 
 #Sets up colors
 BW = cm.get_cmap("Greys", 11)
-colors = np.array([[256,256,256,256],
+colors = np.array([[256,256,256,256],# This is the background.
             [128, 0, 0, 256],
             [230, 25, 75, 256],
             [70, 240, 240, 256],
@@ -162,7 +162,7 @@ colors = np.array([[256,256,256,256],
             [170, 255, 195, 256],
             [165, 163, 159, 256],
             [0, 128, 128, 256],
-            [128, 128, 0, 256]])/256 # This is the background.
+            [128, 128, 0, 256]])/256
 
 newcolors = BW(np.linspace(-1, 10, 11))
 newcolors[:11, :] = colors

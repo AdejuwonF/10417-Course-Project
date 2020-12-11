@@ -39,7 +39,7 @@ coco_val_people = CocoDetectionCatIds(root=path + 'COCO_DATASET/val2017',
 print(len(coco_val_people))
 
 
-net = torch.load("/Users/adejuwon/Desktop/CMU School Junk/Fall 2020/10417 Intermediate Deep Learning/Course Project/baseline_model_epoch_100")
+net = torch.load("baseline_model_epoch_100")
 
 img, mask = coco_val_people[3]
 print(img.shape, mask.shape)
