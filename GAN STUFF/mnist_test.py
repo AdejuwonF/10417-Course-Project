@@ -19,7 +19,7 @@ batch_size = models.batch_size
 workers = models.workers
 
 
-dataroot = "/Users/adejuwon/Desktop/Pet Projects/PokeGan/pokemon"
+dataroot = "pokemon"
 
 # dataset = dset.MNIST(root="./",
 #                      transform=transforms.Compose([
@@ -36,7 +36,6 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                          shuffle=True, num_workers=workers)
 
 model = models.WGAN()
-#model.load("/Users/adejuwon/Desktop/Pet Projects/PokeGan/MNIST_GAN/gan_wc_10_epochs2020_11_14_17:20:12")
 start = time.time()
 model.train(30, dataloader)
 print(time.time() - start)
@@ -44,5 +43,4 @@ i = 0
 for img in (model.img_list):
     save_image(img, "MNIST_playground_output/epoch_" + str(i) + ".png")
     i += 1
-#model.save("/Users/adejuwon/Desktop/Pet Projects/PokeGan/MNIST_GAN")
 
