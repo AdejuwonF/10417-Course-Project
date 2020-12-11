@@ -39,8 +39,6 @@ def inception_score(generator, classifier,  noise_dim, n_classes=10, num_samples
     return torch.exp(KL_div(posteriors, priors))
 
 wgan = WGAN()
-#wgan.load("/Users/adejuwon/Desktop/CMU School Junk/Fall 2020/10417 Intermediate Deep Learning/Course Project/WGAN_WC_01/OLD_WGAN_0005/gan_wc_100_epochs2020_11_30_05:27:10")
-#state_dict = torch.load("/Users/adejuwon/Desktop/CMU School Junk/Fall 2020/10417 Intermediate Deep Learning/Course Project/classifier_checkpoints/epoch50")
 
 state_dict = torch.load("classifier_checkpoints/classifier_checkpoints_ndf32/epoch10")
 classifier = state_dict["model"]
