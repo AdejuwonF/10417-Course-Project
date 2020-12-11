@@ -169,7 +169,7 @@ class WGAN_GP(object):
 
     def save(self, fp=None):
         if fp is None:
-            fp = "/Users/adejuwon/Desktop/Pet Projects/PokeGan/model_checkpoints/poke_gan_gp_{0}_epochs_{1}"\
+            fp = "model_checkpoints/poke_gan_gp_{0}_epochs_{1}"\
                 .format(self.epochs, datetime.now().strftime("%Y_%m_%d_%H:%M:%S"))
         else:
             fp += "/gan_gp_{0}_epochs{1}".format(self.epochs, datetime.now().strftime("%Y_%m_%d_%H:%M:%S"))
